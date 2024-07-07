@@ -44,7 +44,7 @@ model:
   use_multi_lat: ${dataset.use_multi_lat}
   pool: ${pool}
   use_bn: false
-  in_chans: 1
+  in_chans: 3
   grad_checkpointing: false
 
 
@@ -68,7 +68,7 @@ forwarder:
   use_multi_view: ${dataset.use_multi_view}
   use_multi_lat: ${dataset.use_multi_lat}
   loss:
-    cancer_weight: 1.0
+    target_weight: 1.0
     biopsy_weight: 0.0
     invasive_weight: 0.0
     birads_weight: 0.0

@@ -59,7 +59,7 @@ def main(cfg: DictConfig, pl_model: type) -> Path:
             accumulate_grad_batches=cfg.training.accumulate_grad_batches,
             callbacks=[checkpoint_cb],
             logger=pl_logger,
-            #resume_from_checkpoint=resume_from,
+            # resume_from_checkpoint=resume_from,
             num_sanity_val_steps=0 if is_test_mode else 2,
             sync_batchnorm=True,
         )

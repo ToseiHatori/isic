@@ -26,7 +26,7 @@ class WrapperDataset(Dataset):
         image_1 = data.pop("image_1")
         transformed = self.transform(image=image_1)
         image_1 = transformed["image"]  # (1, H, W)
-        
+
         data["image"] = image_1
 
         return data

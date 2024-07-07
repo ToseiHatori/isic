@@ -9,6 +9,17 @@ from pfio.cache import MultiprocessFileCache
 from sklearn.model_selection import GroupKFold
 from torch.utils.data import Dataset
 
+ANATOM_SITE_GENERAL_ENCODER = {
+    "unk": 0,
+    "anterior torso": 1,
+    "head/neck": 2,
+    "lower extremity": 3,
+    "posterior torso": 4,
+    "upper extremity": 5,
+}
+SEX_ENCODER = {"male": 0, "female": 1}
+
+
 class ISICDataset(Dataset):
 
     ROOT_PATH = Path("./data")
@@ -27,7 +38,7 @@ class ISICDataset(Dataset):
 
         if data_type == "train":
             if fold_path is not None:
-                df = pd.read_csv(fold_path)
+                df = pd.read_csv(fold_path, low_memory=False)
                 if num_records:
                     df = df[:num_records]
                 return df
@@ -70,8 +81,14 @@ class ISICDataset(Dataset):
         self.df = df.copy()
         self.df["original_index"] = df.index
         self.df.reset_index(inplace=True)
-        self.df["age_approx"] = self.df["age_approx"].fillna(60)
+        self.df["age_scaled"] = self.df["age_approx"].fillna(60) / 90
+        self.df["sex"] = self.df["sex"].fillna("male")
+        self.df["anatom_site_general"] = self.df["anatom_site_general"].fillna("unk")
         self.df = self.df.fillna(0)
+        self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
+            ANATOM_SITE_GENERAL_ENCODER
+        )
+        self.df["sex_enc"] = self.df["sex"].map(SEX_ENCODER)
         self.data_name = data_name
         self.root = self.ROOT_PATH
         self.phase = phase
@@ -95,7 +112,6 @@ class ISICDataset(Dataset):
         if self.data_name == "isic" or self.data_name == "vindr":
             path = root / f"train-image/image/{image_id}.jpg"
             image = cv2.imread(str(path))
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             return image, 0
 
     def read_image(self, index):
@@ -104,25 +120,21 @@ class ISICDataset(Dataset):
         else:
             image, _ = self._read_image(index)
         return image
-    
+
     def get_metadata(self, index):
-        res = {}
-        age_approx = self.df.loc[index, "age_approx"] / 90
-        sex = self.df.loc[index, "sex"]
-        if sex == "female":
-            sex = 1
-        else:
-            sex = 0
-        res["age_approx"] = age_approx
-        res["sex"] = sex
+        res = {
+            "age_scaled": self.df.loc[index, "age_scaled"],
+            "sex_enc": self.df.loc[index, "sex_enc"],
+            "anatom_site_general_enc": self.df.loc[index, "anatom_site_general_enc"],
+        }
         return res
 
     def __getitem__(self, index: int):
 
         label = self.df.loc[index, "target"]
         patient_id = self.df.loc[index, "patient_id"]
-        
-        image_1 = self.read_image(index) 
+
+        image_1 = self.read_image(index)
         metadata = self.get_metadata(index)
         res = {
             "original_index": self.df.at[index, "original_index"],

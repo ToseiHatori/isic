@@ -10,7 +10,7 @@ python -m run.train \
   preprocessing.w_resize_to=256 \
   augmentation.use_light_aug=true \
   model.base_model=convnext_base.fb_in22k_ft_in1k \
-  training.num_workers=2 \
+  training.num_workers=1 \
   optimizer.lr=2e-5 \
   scheduler.warmup_steps_ratio=0.0 \
   training.accumulate_grad_batches=2 \

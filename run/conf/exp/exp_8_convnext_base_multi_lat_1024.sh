@@ -18,7 +18,7 @@ python -m run.train \
   optimizer.lr=5e-5 \
   optimizer.lr_head=5e-4 \
   scheduler.warmup_steps_ratio=0.0 \
-  forwarder.loss.cancer_weight=10.0 \
+  forwarder.loss.target_weight=10.0 \
   forwarder.loss.pr_auc_weight=0.0 \
   forwarder.loss.biopsy_weight=1.0 \
   forwarder.loss.invasive_weight=1.0 \
