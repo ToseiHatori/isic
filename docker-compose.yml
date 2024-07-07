@@ -1,0 +1,13 @@
+services:
+  modeling:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: isic
+    volumes:
+      - ./:/home/working
+    working_dir: /home/working
+    ports:
+      - 8890:8890
+    runtime: nvidia
+    command: jupyter lab --ip=0.0.0.0 --port 8890 --allow-root --NotebookApp.notebook_dir='/home/working' --no-browser --NotebookApp.token='op'
