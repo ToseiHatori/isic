@@ -16,6 +16,9 @@ RUN pip install -U pip && \
     jupyter nbextension install https://github.com/drillan/jupyter-black/archive/master.zip && \
     jupyter nbextension enable jupyter-black-master/jupyter-blacks
 
+# kaggle dockerのままだと3090で動かない・・・
+RUN pip install -U torch torchvision torchaudio
+
 # Verify installation
 RUN nvcc --version && \
     python -c "import torch; print(torch.cuda.is_available())" && \

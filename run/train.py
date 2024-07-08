@@ -51,7 +51,7 @@ def main(cfg: DictConfig, pl_model: type) -> Path:
             accelerator="cpu",
             devices=cfg.training.num_gpus,
             strategy="ddp",
-            precision=16 if cfg.training.use_amp else 32,
+            precision="16-mixed" if cfg.training.use_amp else 32,
             # training
             fast_dev_run=cfg.training.debug,  # run only 1 train batch and 1 val batch
             max_epochs=cfg.training.epoch,

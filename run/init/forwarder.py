@@ -96,9 +96,7 @@ class Forwarder(nn.Module):
         labels = batch["label"].to(torch.float16)
         labels_age_scaled = batch["age_scaled"].to(torch.float16)
         labels_sex_enc = batch["sex_enc"].to(torch.float16)
-        labels_anatom_site_general_enc = batch["anatom_site_general_enc"].to(
-            torch.float16
-        )
+        labels_anatom_site_general_enc = batch["anatom_site_general_enc"]
 
         if phase == "train":
             with torch.set_grad_enabled(True):

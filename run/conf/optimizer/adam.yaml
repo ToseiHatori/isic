@@ -1,4 +1,4 @@
-# @package _group_
+# @package optimizer
 type: adam
 lr: 1.0e-3
 weight_decay: 1.0e-5

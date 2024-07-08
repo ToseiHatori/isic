@@ -1,4 +1,4 @@
-# @package _group_
+# @package scheduler
 type: reduce_on_plateau
 lr_decay_rate: 0.1
 patience: 10

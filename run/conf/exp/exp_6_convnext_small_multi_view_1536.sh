@@ -20,9 +20,9 @@ python -m run.train \
   scheduler.warmup_steps_ratio=0.0 \
   forwarder.loss.target_weight=4.0 \
   forwarder.loss.pr_auc_weight=0.0 \
-  forwarder.loss.biopsy_weight=1.0 \
-  forwarder.loss.invasive_weight=1.0 \
-  forwarder.loss.birads_weight=0.0 \
+  forwarder.loss.age_scaled_weight=1.0 \
+  forwarder.loss.sex_enc_weight=1.0 \
+  forwarder.loss.anatom_site_general_enc_weight=0.0 \
   forwarder.loss.difficult_negative_case_weight=1.0 \
   forwarder.loss.age_weight=1.0 \
   training.accumulate_grad_batches=4 \

@@ -114,6 +114,7 @@ class PLModel(LightningModule):
                 self.datasets[phase] = WrapperDataset(
                     raw_datasets[phase], transforms[phase], phase
                 )
+                pos_cnt = self.datasets[phase].base.df["target"].sum()
                 logger.info(f"{phase}: {len(self.datasets[phase])}")
                 logger.info(f"{phase} positive records: {pos_cnt}")
 
@@ -185,14 +186,14 @@ class PLModel(LightningModule):
             "laterality_2",
             "label_2",
             "pred",
-            "pred_biopsy",
-            "pred_invasive",
-            "pred_birads",
+            "pred_age_scaled",
+            "pred_sex_enc",
+            "pred_anatom_site_general_enc",
             "pred_difficult_negative_case",
             "pred_2",
-            "pred_biopsy_2",
-            "pred_invasive_2",
-            "pred_birads_2",
+            "pred_age_scaled_2",
+            "pred_sex_enc_2",
+            "pred_anatom_site_general_enc_2",
             "pred_difficult_negative_case_2",
             "pred_age",
             "pred_machine_id",
@@ -228,18 +229,18 @@ class PLModel(LightningModule):
         df["label"] = epoch_results["label"]
         df["pred_2"] = sigmoid(epoch_results["pred_2"][:, 0].reshape(-1))
         df["label_2"] = epoch_results["label_2"]
-        df["pred_biopsy"] = sigmoid(epoch_results["pred_biopsy"][:, 0].reshape(-1))
-        df["pred_invasive"] = sigmoid(epoch_results["pred_invasive"][:, 0].reshape(-1))
-        df["pred_birads"] = sigmoid(epoch_results["pred_birads"][:, 0].reshape(-1)) * 5
+        df["pred_age_scaled"] = sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1))
+        df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1))
+        df["pred_anatom_site_general_enc"] = sigmoid(epoch_results["pred_anatom_site_general_enc"][:, 0].reshape(-1)) * 5
         df["pred_difficult_negative_case"] = sigmoid(
             epoch_results["pred_difficult_negative_case"][:, 0].reshape(-1)
         )
-        df["pred_biopsy_2"] = sigmoid(epoch_results["pred_biopsy_2"][:, 0].reshape(-1))
-        df["pred_invasive_2"] = sigmoid(
-            epoch_results["pred_invasive_2"][:, 0].reshape(-1)
+        df["pred_age_scaled_2"] = sigmoid(epoch_results["pred_age_scaled_2"][:, 0].reshape(-1))
+        df["pred_sex_enc_2"] = sigmoid(
+            epoch_results["pred_sex_enc_2"][:, 0].reshape(-1)
         )
-        df["pred_birads_2"] = (
-            sigmoid(epoch_results["pred_birads_2"][:, 0].reshape(-1)) * 5
+        df["pred_anatom_site_general_enc_2"] = (
+            sigmoid(epoch_results["pred_anatom_site_general_enc_2"][:, 0].reshape(-1)) * 5
         )
         df["pred_difficult_negative_case_2"] = sigmoid(
             epoch_results["pred_difficult_negative_case_2"][:, 0].reshape(-1)
@@ -353,45 +354,21 @@ class PLModel(LightningModule):
             preds,
             loss,
             embed_features,
-            preds_biopsy,
-            preds_invasive,
-            preds_birads,
-            preds_difficult_negative_case,
-            preds_age,
-            preds_machine_id,
-            preds_site_id,
-            preds_2,
-            preds_biopsy_2,
-            preds_invasive_2,
-            preds_birads_2,
-            preds_difficult_negative_case_2,
+            preds_age_scaled,
+            preds_sex_enc,
+            preds_anatom_site_general_enc,
         ) = self.forwarder.forward(batch, phase=phase, epoch=self.current_epoch)
 
         output = {
             "loss": loss,
             "label": batch["label"],
-            "label_2": batch["label_2"],
             "original_index": batch["original_index"],
             "patient_id": batch["patient_id"],
             "isic_id": batch["isic_id"],
-            "image_id_2": batch["image_id_2"],
-            "image_id_3": batch["image_id_3"],
-            "image_id_4": batch["image_id_4"],
-            "laterality": batch["laterality"],
-            "laterality_2": batch["laterality_2"],
             "pred": preds.detach(),
-            "pred_biopsy": preds_biopsy.detach(),
-            "pred_invasive": preds_invasive.detach(),
-            "pred_birads": preds_birads.detach(),
-            "pred_difficult_negative_case": preds_difficult_negative_case.detach(),
-            "pred_2": preds_2.detach(),
-            "pred_biopsy_2": preds_biopsy_2.detach(),
-            "pred_invasive_2": preds_invasive_2.detach(),
-            "pred_birads_2": preds_birads_2.detach(),
-            "pred_difficult_negative_case_2": preds_difficult_negative_case_2.detach(),
-            "pred_age": preds_age.detach(),
-            "pred_machine_id": preds_machine_id.detach(),
-            "pred_site_id": preds_site_id.detach(),
+            "pred_age_scaled": preds_age_scaled.detach(),
+            "pred_sex_enc": preds_sex_enc.detach(),
+            "pred_anatom_site_general_enc": preds_anatom_site_general_enc.detach(),
             "embed_features": embed_features.detach(),
         }
         return output

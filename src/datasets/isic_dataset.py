@@ -81,9 +81,10 @@ class ISICDataset(Dataset):
         self.df = df.copy()
         self.df["original_index"] = df.index
         self.df.reset_index(inplace=True)
-        self.df["age_scaled"] = self.df["age_approx"].fillna(60) / 90
+        self.df["age_scaled"] = self.df["age_approx"].fillna(60) / 90 # 後でloglossで評価するのでクソでかい数字で割っておく
         self.df["sex"] = self.df["sex"].fillna("male")
         self.df["anatom_site_general"] = self.df["anatom_site_general"].fillna("unk")
+        self.df = self.df.infer_objects() # これやっとかないと警告が出る
         self.df = self.df.fillna(0)
         self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
             ANATOM_SITE_GENERAL_ENCODER
@@ -132,12 +133,14 @@ class ISICDataset(Dataset):
     def __getitem__(self, index: int):
 
         label = self.df.loc[index, "target"]
+        isic_id = self.df.loc[index, "isic_id"]
         patient_id = self.df.loc[index, "patient_id"]
 
         image_1 = self.read_image(index)
         metadata = self.get_metadata(index)
         res = {
             "original_index": self.df.at[index, "original_index"],
+            "isic_id": isic_id,
             "patient_id": patient_id,
             "label": label,
             "image_1": image_1,
