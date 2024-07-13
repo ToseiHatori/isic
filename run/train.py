@@ -14,7 +14,8 @@ from run.pl_model import PLModel
 logger = logging.getLogger(__name__)
 
 torch.backends.cuda.matmul.allow_tf32 = False
-torch.set_float32_matmul_precision('medium')
+torch.set_float32_matmul_precision("medium")
+
 
 def main(cfg: DictConfig, pl_model: type) -> Path:
     seed_everything(cfg.training.seed)

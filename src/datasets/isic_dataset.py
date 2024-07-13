@@ -1,15 +1,15 @@
 import random
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
 import cv2
+import h5py
 import numpy as np
 import pandas as pd
 from pfio.cache import MultiprocessFileCache
 from sklearn.model_selection import GroupKFold
 from torch.utils.data import Dataset
-from io import BytesIO
-import h5py
 
 ANATOM_SITE_GENERAL_ENCODER = {
     "unk": 0,
@@ -83,10 +83,12 @@ class ISICDataset(Dataset):
         self.df = df.copy()
         self.df["original_index"] = df.index
         self.df.reset_index(inplace=True)
-        self.df["age_scaled"] = self.df["age_approx"].fillna(60) / 90 # 後でloglossで評価するのでクソでかい数字で割っておく
+        self.df["age_scaled"] = (
+            self.df["age_approx"].fillna(60) / 90
+        )  # 後でloglossで評価するのでクソでかい数字で割っておく
         self.df["sex"] = self.df["sex"].fillna("male")
         self.df["anatom_site_general"] = self.df["anatom_site_general"].fillna("unk")
-        self.df = self.df.infer_objects() # これやっとかないと警告が出る
+        self.df = self.df.infer_objects()  # これやっとかないと警告が出る
         self.df = self.df.fillna(0)
         self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
             ANATOM_SITE_GENERAL_ENCODER

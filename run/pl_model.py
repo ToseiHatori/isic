@@ -7,7 +7,8 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import (auc, average_precision_score, roc_auc_score,
+                             roc_curve)
 from torch import Tensor
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -18,14 +19,17 @@ from run.init.optimizer import init_optimizer_from_config
 from run.init.preprocessing import Preprocessing
 from run.init.scheduler import init_scheduler_from_config
 from src.datasets.wrapper import WrapperDataset
-from sklearn.metrics import roc_curve, auc
 
 logger = getLogger(__name__)
+
 
 class ParticipantVisibleError(Exception):
     pass
 
-def pAUC_score(labels: np.ndarray, predictions: np.ndarray, min_tpr: float=0.80) -> float:
+
+def pAUC_score(
+    labels: np.ndarray, predictions: np.ndarray, min_tpr: float = 0.80
+) -> float:
     """
     2024 ISIC Challenge metric: pAUC
 
@@ -43,7 +47,7 @@ def pAUC_score(labels: np.ndarray, predictions: np.ndarray, min_tpr: float=0.80)
     """
 
     if not pd.api.types.is_numeric_dtype(predictions):
-        raise ParticipantVisibleError('Submission target column must be numeric')
+        raise ParticipantVisibleError("Submission target column must be numeric")
 
     y_true = abs(np.asarray(labels) - 1)
     y_pred = -1.0 * np.asarray(predictions)
@@ -64,6 +68,7 @@ def pAUC_score(labels: np.ndarray, predictions: np.ndarray, min_tpr: float=0.80)
     partial_auc = auc(fpr, tpr)
 
     return partial_auc
+
 
 def pf_score(labels, predictions, percentile=0, bin=False):
     beta = 1
@@ -183,7 +188,7 @@ class PLModel(LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            #logger=True,
+            # logger=True,
             sync_dist=True,
         )
 
@@ -195,7 +200,7 @@ class PLModel(LightningModule):
             on_step=True,
             on_epoch=False,
             prog_bar=True,
-            #logger=True,
+            # logger=True,
             sync_dist=True,
             batch_size=1,
         )
@@ -248,9 +253,13 @@ class PLModel(LightningModule):
         )
         df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1))
         df["label"] = epoch_results["label"]
-        df["pred_age_scaled"] = sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1)) * 90
+        df["pred_age_scaled"] = (
+            sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1)) * 90
+        )
         df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1))
-        df["pred_anatom_site_general_enc"] = epoch_results["pred_anatom_site_general_enc"].argmax(axis=1).reshape(-1)
+        df["pred_anatom_site_general_enc"] = (
+            epoch_results["pred_anatom_site_general_enc"].argmax(axis=1).reshape(-1)
+        )
         df = df.sort_values(by="original_index")
 
         if phase == "test" and self.trainer.global_rank == 0:
@@ -266,16 +275,9 @@ class PLModel(LightningModule):
             if self.datasets[phase].base.data_name == "vindr":
                 df_vindr = pd.read_csv("./vindr/vindr_train.csv")
                 df_vindr["cancer"] = df["pred"]
-                df_vindr.to_csv(
-                    test_results_filepath / "vinder_pl.csv", index=False
-                )
+                df_vindr.to_csv(test_results_filepath / "vinder_pl.csv", index=False)
 
-        loss = (
-            outputs["loss"][0]
-            .detach()
-            .cpu()
-            .numpy()
-        )
+        loss = outputs["loss"][0].detach().cpu().numpy()
         mean_loss = np.mean(loss)
 
         if phase != "test" and self.trainer.global_rank == 0:

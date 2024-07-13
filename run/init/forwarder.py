@@ -3,10 +3,11 @@ from typing import Dict, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from global_objectives.losses import AUCPRLoss
 from omegaconf import DictConfig
 from torch import Tensor
 from torch_ema import ExponentialMovingAverage
+
+from global_objectives.losses import AUCPRLoss
 
 
 class Forwarder(nn.Module):
