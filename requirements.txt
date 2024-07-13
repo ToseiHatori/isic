@@ -3,12 +3,11 @@ hydra-core==1.1.2
 hydra-colorlog==1.1.0
 pytorch-lightning==2.2.5
 torch-optimizer==0.3.0
-opencv-python==4.8.0.74
+opencv-python==4.10.0.82
 #wandb==0.12.16
 scikit-learn==1.5.0
 pfio==1.0.1
 transformers==4.41.1
-#pydicom==2.3.0
 torch-ema==0.3
 h5py==3.11.0
 timm==1.0.3

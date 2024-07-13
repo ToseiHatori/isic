@@ -18,9 +18,52 @@ from run.init.optimizer import init_optimizer_from_config
 from run.init.preprocessing import Preprocessing
 from run.init.scheduler import init_scheduler_from_config
 from src.datasets.wrapper import WrapperDataset
+from sklearn.metrics import roc_curve, auc
 
 logger = getLogger(__name__)
 
+class ParticipantVisibleError(Exception):
+    pass
+
+def pAUC_score(labels: np.ndarray, predictions: np.ndarray, min_tpr: float=0.80) -> float:
+    """
+    2024 ISIC Challenge metric: pAUC
+
+    Given a list of binary labels and an associated list of prediction scores ranging from [0,1],
+    this function produces the partial area under the receiver operating characteristic (pAUC)
+    above a given true positive rate (TPR).
+
+    Args:
+        labels: Ground truth numpy array of 1s and 0s
+        predictions: Numpy array of prediction scores ranging [0, 1]
+        min_tpr: Minimum true positive rate for partial AUC calculation, default is 0.80
+
+    Returns:
+        Float value representing the partial AUC
+    """
+
+    if not pd.api.types.is_numeric_dtype(predictions):
+        raise ParticipantVisibleError('Submission target column must be numeric')
+
+    y_true = abs(np.asarray(labels) - 1)
+    y_pred = -1.0 * np.asarray(predictions)
+    max_fpr = abs(1 - min_tpr)
+
+    fpr, tpr, _ = roc_curve(y_true, y_pred)
+    if max_fpr is None or max_fpr == 1:
+        return auc(fpr, tpr)
+    if max_fpr <= 0 or max_fpr > 1:
+        raise ValueError(f"Expected min_tpr in range [0, 1), got: {min_tpr}")
+
+    stop = np.searchsorted(fpr, max_fpr, "right")
+    x_interp = [fpr[stop - 1], fpr[stop]]
+    y_interp = [tpr[stop - 1], tpr[stop]]
+    tpr = np.append(tpr[:stop], np.interp(max_fpr, x_interp, y_interp))
+    fpr = np.append(fpr[:stop], max_fpr)
+    print(fpr, tpr)
+    partial_auc = auc(fpr, tpr)
+
+    return partial_auc
 
 def pf_score(labels, predictions, percentile=0, bin=False):
     beta = 1
@@ -255,35 +298,25 @@ class PLModel(LightningModule):
         pred = df["pred"].values
         label = df["label"].values
         pf_score_000 = pf_score(label, pred)
-        f1_score_980 = pf_score(label, pred, percentile=98.0, bin=True)
-        f1_score_981 = pf_score(label, pred, percentile=98.1, bin=True)
-        f1_score_982 = pf_score(label, pred, percentile=98.2, bin=True)
-        f1_score_983 = pf_score(label, pred, percentile=98.3, bin=True)
-        f1_score_984 = pf_score(label, pred, percentile=98.4, bin=True)
-        max_f1_score = max(
-            f1_score_980, f1_score_981, f1_score_982, f1_score_983, f1_score_984
-        )
         try:
             auc_score = roc_auc_score(label.reshape(-1), pred.reshape(-1))
         except Exception:
             auc_score = 0
-
+        try:
+            pauc_score = pAUC_score(label, pred)
+        except Exception:
+            pauc_score = 0
         try:
             pr_auc_score = average_precision_score(label.reshape(-1), pred.reshape(-1))
         except Exception:
             auc_score = 0
 
-        mean_auc_score = (auc_score + pr_auc_score) / 2
+        mean_auc_score = (auc_score + pr_auc_score + pauc_score) / 3
 
         # Log items
         self.log(f"{phase}/loss", mean_loss, prog_bar=True, sync_dist=True)
+        self.log(f"{phase}/pAUC", pauc_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/pf_score", pf_score_000, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score_980", f1_score_980, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score_981", f1_score_981, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score_982", f1_score_982, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score_983", f1_score_983, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score_984", f1_score_984, prog_bar=False, sync_dist=True)
-        self.log(f"{phase}/f1_score", max_f1_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/pr_auc", pr_auc_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/auc", auc_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/mean_auc", mean_auc_score, prog_bar=True, sync_dist=True)
