@@ -8,6 +8,8 @@ import pandas as pd
 from pfio.cache import MultiprocessFileCache
 from sklearn.model_selection import GroupKFold
 from torch.utils.data import Dataset
+from io import BytesIO
+import h5py
 
 ANATOM_SITE_GENERAL_ENCODER = {
     "unk": 0,
@@ -94,6 +96,7 @@ class ISICDataset(Dataset):
         self.root = self.ROOT_PATH
         self.phase = phase
         self.cfg_aug = cfg.augmentation
+        self.fp_hdf = h5py.File("./data/train-image.hdf5", mode="r")
 
         if cfg.use_cache:
             cache_dir = "/tmp/isic/"
@@ -111,8 +114,14 @@ class ISICDataset(Dataset):
         root = self.ROOT_PATH
         image_id = self.df.at[index, "isic_id"]
         if self.data_name == "isic" or self.data_name == "vindr":
-            path = root / f"train-image/image/{image_id}.jpg"
-            image = cv2.imread(str(path))
+            # 画像データを読み込む（例: self.fp_hdf[image_id][()]）
+            image_data = self.fp_hdf[image_id][()]
+            # BytesIOオブジェクトを作成
+            image_stream = BytesIO(image_data)
+            # BytesIOからバイトデータを取得
+            byte_array = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
+            # OpenCVで画像データをデコード
+            image = cv2.imdecode(byte_array, cv2.IMREAD_COLOR)
             return image, 0
 
     def read_image(self, index):

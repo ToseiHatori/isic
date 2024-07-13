@@ -69,7 +69,7 @@ class PLModel(LightningModule):
         self.save_hyperparameters()
         self.cfg = cfg.copy()
         self.save_embed = self.cfg.training.save_embed
-
+        self.accelerator = cfg.training.accelerator
         pretrained = False if cfg.training.debug else True
         model = init_model_from_config(cfg.model, pretrained=pretrained)
         self.forwarder = Forwarder(cfg.forwarder, model)
@@ -130,7 +130,7 @@ class PLModel(LightningModule):
 
     def training_step(self, batch: Dict[str, Tensor], batch_idx: int):
         additional_info = {}
-        _, loss, _, _, _, _, _, _, _, _, _, _, _, _, _ = self.forwarder.forward(
+        _, loss, _, _, _, _ = self.forwarder.forward(
             batch, phase="train", epoch=self.current_epoch, **additional_info
         )
 
@@ -140,7 +140,7 @@ class PLModel(LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            logger=True,
+            #logger=True,
             sync_dist=True,
         )
 
@@ -152,7 +152,7 @@ class PLModel(LightningModule):
             on_step=True,
             on_epoch=False,
             prog_bar=True,
-            logger=True,
+            #logger=True,
             sync_dist=True,
             batch_size=1,
         )
@@ -177,39 +177,22 @@ class PLModel(LightningModule):
         for key in [
             "original_index",
             "isic_id",
-            "image_id_2",
-            "image_id_3",
-            "image_id_4",
             "patient_id",
-            "laterality",
             "label",
-            "laterality_2",
-            "label_2",
             "pred",
             "pred_age_scaled",
             "pred_sex_enc",
             "pred_anatom_site_general_enc",
-            "pred_difficult_negative_case",
-            "pred_2",
-            "pred_age_scaled_2",
-            "pred_sex_enc_2",
-            "pred_anatom_site_general_enc_2",
-            "pred_difficult_negative_case_2",
-            "pred_age",
-            "pred_machine_id",
-            "pred_site_id",
             "embed_features",
         ]:
             if key == "embed_features":
                 if not self.save_embed:
                     continue
-            if isinstance(outputs[0][key], Tensor):
-                result = torch.cat([torch.atleast_1d(x[key]) for x in outputs], dim=1)
-                result = torch.flatten(result, end_dim=1)
+            if isinstance(outputs[key][0], Tensor):
+                result = torch.flatten(outputs[key][0], end_dim=0)
                 epoch_results[key] = result.detach().cpu().numpy()
             else:
-                result = np.concatenate([x[key] for x in outputs])
-                epoch_results[key] = result
+                epoch_results[key] = np.array(outputs[key])
 
         df = pd.DataFrame(
             data={
@@ -217,46 +200,16 @@ class PLModel(LightningModule):
                 .reshape(-1)
                 .astype(int),
                 "isic_id": epoch_results["isic_id"].reshape(-1),
-                "image_id_2": epoch_results["image_id_2"].reshape(-1),
-                "image_id_3": epoch_results["image_id_3"].reshape(-1),
-                "image_id_4": epoch_results["image_id_4"].reshape(-1),
                 "patient_id": epoch_results["patient_id"].reshape(-1),
-                "laterality": epoch_results["laterality"].reshape(-1),
-                "laterality_2": epoch_results["laterality_2"].reshape(-1),
             }
         )
         df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1))
         df["label"] = epoch_results["label"]
-        df["pred_2"] = sigmoid(epoch_results["pred_2"][:, 0].reshape(-1))
-        df["label_2"] = epoch_results["label_2"]
-        df["pred_age_scaled"] = sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1))
+        df["pred_age_scaled"] = sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1)) * 90
         df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1))
-        df["pred_anatom_site_general_enc"] = sigmoid(epoch_results["pred_anatom_site_general_enc"][:, 0].reshape(-1)) * 5
-        df["pred_difficult_negative_case"] = sigmoid(
-            epoch_results["pred_difficult_negative_case"][:, 0].reshape(-1)
-        )
-        df["pred_age_scaled_2"] = sigmoid(epoch_results["pred_age_scaled_2"][:, 0].reshape(-1))
-        df["pred_sex_enc_2"] = sigmoid(
-            epoch_results["pred_sex_enc_2"][:, 0].reshape(-1)
-        )
-        df["pred_anatom_site_general_enc_2"] = (
-            sigmoid(epoch_results["pred_anatom_site_general_enc_2"][:, 0].reshape(-1)) * 5
-        )
-        df["pred_difficult_negative_case_2"] = sigmoid(
-            epoch_results["pred_difficult_negative_case_2"][:, 0].reshape(-1)
-        )
-        df["pred_age"] = sigmoid(epoch_results["pred_age"].reshape(-1)) * 90
-        df["pred_machine_id"] = (
-            epoch_results["pred_machine_id"].argmax(axis=1).reshape(-1)
-        )
-        df["pred_site_id"] = (epoch_results["pred_site_id"][:, 0] > 0).reshape(-1) + 1
-        df = (
-            df.drop_duplicates()
-            .groupby(by=["original_index"])
-            .mean()
-            .reset_index()
-            .sort_values(by="original_index")
-        )
+        df["pred_anatom_site_general_enc"] = epoch_results["pred_anatom_site_general_enc"].argmax(axis=1).reshape(-1)
+        df = df.sort_values(by="original_index")
+
         if phase == "test" and self.trainer.global_rank == 0:
             # Save test results ".npz" format
             test_results_filepath = Path(self.cfg.out_dir) / "test_results"
@@ -267,22 +220,15 @@ class PLModel(LightningModule):
                 **epoch_results,
             )
             df.to_csv(test_results_filepath / "test_results.csv", index=False)
-            if "patient_id" in df.columns:
-                df = df[["patient_id", "laterality", "label", "pred"]]
-                df = df.groupby(by=["patient_id", "laterality"]).mean().reset_index()
-                df.to_csv(
-                    test_results_filepath / "test_results_breast.csv", index=False
+            if self.datasets[phase].base.data_name == "vindr":
+                df_vindr = pd.read_csv("./vindr/vindr_train.csv")
+                df_vindr["cancer"] = df["pred"]
+                df_vindr.to_csv(
+                    test_results_filepath / "vinder_pl.csv", index=False
                 )
-            else:
-                if self.datasets[phase].base.data_name == "vindr":
-                    df_vindr = pd.read_csv("./vindr/vindr_train.csv")
-                    df_vindr["cancer"] = df["pred"]
-                    df_vindr.to_csv(
-                        test_results_filepath / "vinder_pl.csv", index=False
-                    )
 
         loss = (
-            torch.cat([torch.atleast_1d(x["loss"]) for x in outputs])
+            outputs["loss"][0]
             .detach()
             .cpu()
             .numpy()
@@ -295,13 +241,6 @@ class PLModel(LightningModule):
                 test_results_filepath.mkdir(exist_ok=True)
             df.to_csv(
                 test_results_filepath / f"epoch_{self.current_epoch}_results.csv",
-                index=False,
-            )
-            df = df[["patient_id", "laterality", "label", "pred"]]
-            df = df.groupby(by=["patient_id", "laterality"]).mean().reset_index()
-            df.to_csv(
-                test_results_filepath
-                / f"epoch_{self.current_epoch}_results_breast.csv",
                 index=False,
             )
             weights_filepath = Path(self.cfg.out_dir) / "weights"
@@ -337,17 +276,17 @@ class PLModel(LightningModule):
         mean_auc_score = (auc_score + pr_auc_score) / 2
 
         # Log items
-        self.log(f"{phase}/loss", mean_loss, prog_bar=True)
-        self.log(f"{phase}/pf_score", pf_score_000, prog_bar=False)
-        self.log(f"{phase}/f1_score_980", f1_score_980, prog_bar=False)
-        self.log(f"{phase}/f1_score_981", f1_score_981, prog_bar=False)
-        self.log(f"{phase}/f1_score_982", f1_score_982, prog_bar=False)
-        self.log(f"{phase}/f1_score_983", f1_score_983, prog_bar=False)
-        self.log(f"{phase}/f1_score_984", f1_score_984, prog_bar=False)
-        self.log(f"{phase}/f1_score", max_f1_score, prog_bar=True)
-        self.log(f"{phase}/pr_auc", pr_auc_score, prog_bar=True)
-        self.log(f"{phase}/auc", auc_score, prog_bar=True)
-        self.log(f"{phase}/mean_auc", mean_auc_score, prog_bar=True)
+        self.log(f"{phase}/loss", mean_loss, prog_bar=True, sync_dist=True)
+        self.log(f"{phase}/pf_score", pf_score_000, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score_980", f1_score_980, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score_981", f1_score_981, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score_982", f1_score_982, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score_983", f1_score_983, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score_984", f1_score_984, prog_bar=False, sync_dist=True)
+        self.log(f"{phase}/f1_score", max_f1_score, prog_bar=True, sync_dist=True)
+        self.log(f"{phase}/pr_auc", pr_auc_score, prog_bar=True, sync_dist=True)
+        self.log(f"{phase}/auc", auc_score, prog_bar=True, sync_dist=True)
+        self.log(f"{phase}/mean_auc", mean_auc_score, prog_bar=True, sync_dist=True)
 
     def _evaluation_step(self, batch: Dict[str, Tensor], phase: Literal["val", "test"]):
         (

@@ -121,6 +121,7 @@ training:
   gradient_clip_val: 0.5
   accumulate_grad_batches: 1
   save_embed: false
+  accelerator: "gpu"
 
   epoch: 10
   batch_size: 16

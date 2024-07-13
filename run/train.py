@@ -14,7 +14,7 @@ from run.pl_model import PLModel
 logger = logging.getLogger(__name__)
 
 torch.backends.cuda.matmul.allow_tf32 = False
-
+torch.set_float32_matmul_precision('medium')
 
 def main(cfg: DictConfig, pl_model: type) -> Path:
     seed_everything(cfg.training.seed)
@@ -48,9 +48,9 @@ def main(cfg: DictConfig, pl_model: type) -> Path:
         return Trainer(
             # env
             default_root_dir=str(out_dir),
-            accelerator="cpu",
+            accelerator=cfg.training.accelerator,
             devices=cfg.training.num_gpus,
-            strategy="ddp",
+            strategy="ddp_find_unused_parameters_true",
             precision="16-mixed" if cfg.training.use_amp else 32,
             # training
             fast_dev_run=cfg.training.debug,  # run only 1 train batch and 1 val batch

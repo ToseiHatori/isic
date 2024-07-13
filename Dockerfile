@@ -1,25 +1,8 @@
-FROM gcr.io/kaggle-gpu-images/python:latest
+FROM nvcr.io/nvidia/pytorch:24.05-py3
 
-# Set the environment variable for CUDA
-ENV PATH /usr/local/cuda/bin:${PATH}
-ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
-
-RUN apt-get update && apt-get install -y --allow-change-held-packages \
-    libnccl2=2.18.3-1+cuda12.1 \
-    libnccl-dev=2.18.3-1+cuda12.1 \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install -U pip && \
-    pip install black jupyter-contrib-nbextensions && \
-    jupyter contrib nbextension install && \
-    jupyter nbextensions_configurator enable && \
-    jupyter nbextension install https://github.com/drillan/jupyter-black/archive/master.zip && \
-    jupyter nbextension enable jupyter-black-master/jupyter-blacks
-
-# kaggle dockerのままだと3090で動かない・・・
-RUN pip install -U torch torchvision torchaudio
-
-# Verify installation
-RUN nvcc --version && \
-    python -c "import torch; print(torch.cuda.is_available())" && \
-    dpkg -l | grep nccl
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-dev \
+    tmux &&\
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists
+  

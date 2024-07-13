@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    shm_size: '2gb'
+    shm_size: '32gb'
     container_name: isic
     volumes:
       - ./:/home/working

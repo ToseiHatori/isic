@@ -50,9 +50,9 @@ def get_isic_dataset(
         test_dataset = ISICDataset(test_df, phase="test", cfg=cfg)
         train_positive_dataset = ISICDataset(train_positive, phase="train", cfg=cfg)
     elif phase == "valid":
-        train_dataset = ISICDataset(train_df, phase="test", cfg=cfg)
-        val_dataset = ISICDataset(train_df, phase="test", cfg=cfg)
-        test_dataset = ISICDataset(train_df, phase="test", cfg=cfg)
+        train_dataset = ISICDataset(train_df, phase="val", cfg=cfg)
+        val_dataset = ISICDataset(train_df, phase="val", cfg=cfg)
+        test_dataset = ISICDataset(train_df, phase="val", cfg=cfg)
     elif phase == "test":
         train_dataset = ISICDataset(test_df, phase="test", cfg=cfg)
         val_dataset = ISICDataset(test_df, phase="test", cfg=cfg)

@@ -1,11 +1,12 @@
 FOLD=0
 python -m run.train \
-  dataset.num_folds=4 \
+  dataset.num_folds=5 \
   dataset.test_fold=$FOLD \
   dataset.use_cache=false \
   training.batch_size=16 \
   training.batch_size_test=32 \
-  training.epoch=10 \
+  training.epoch=2 \
+  dataset.num_records=1000 \
   preprocessing.h_resize_to=256 \
   preprocessing.w_resize_to=256 \
   augmentation.use_light_aug=true \
@@ -14,4 +15,4 @@ python -m run.train \
   optimizer.lr=2e-5 \
   scheduler.warmup_steps_ratio=0.0 \
   training.accumulate_grad_batches=2 \
-  out_dir=../results/convnext_base_baseline_fold_$FOLD
+  out_dir=../results/convnext_base_baseline_fold_$FOLD 
