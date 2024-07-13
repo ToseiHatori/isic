@@ -64,7 +64,6 @@ def pAUC_score(
     y_interp = [tpr[stop - 1], tpr[stop]]
     tpr = np.append(tpr[:stop], np.interp(max_fpr, x_interp, y_interp))
     fpr = np.append(fpr[:stop], max_fpr)
-    print(fpr, tpr)
     partial_auc = auc(fpr, tpr)
 
     return partial_auc
@@ -123,6 +122,8 @@ class PLModel(LightningModule):
         self.forwarder = Forwarder(cfg.forwarder, model)
 
         raw_datasets = init_datasets_from_config(cfg.dataset)
+        self.val_outputs = []
+        self.test_outputs = []
 
         preprocessing = Preprocessing(cfg.augmentation, **cfg.preprocessing)
         self.datasets = {}
@@ -236,11 +237,13 @@ class PLModel(LightningModule):
             if key == "embed_features":
                 if not self.save_embed:
                     continue
-            if isinstance(outputs[key][0], Tensor):
-                result = torch.flatten(outputs[key][0], end_dim=0)
+            if isinstance(outputs[0][key], Tensor):
+                result = torch.cat([torch.atleast_1d(x[key]) for x in outputs], dim=1)
+                result = torch.flatten(result, end_dim=1)
                 epoch_results[key] = result.detach().cpu().numpy()
             else:
-                epoch_results[key] = np.array(outputs[key])
+                result = np.concatenate([x[key] for x in outputs])
+                epoch_results[key] = result
 
         df = pd.DataFrame(
             data={
@@ -277,7 +280,12 @@ class PLModel(LightningModule):
                 df_vindr["cancer"] = df["pred"]
                 df_vindr.to_csv(test_results_filepath / "vinder_pl.csv", index=False)
 
-        loss = outputs["loss"][0].detach().cpu().numpy()
+        loss = (
+            torch.cat([torch.atleast_1d(x["loss"]) for x in outputs])
+            .detach()
+            .cpu()
+            .numpy()
+        )
         mean_loss = np.mean(loss)
 
         if phase != "test" and self.trainer.global_rank == 0:
@@ -349,20 +357,21 @@ class PLModel(LightningModule):
 
     def validation_step(self, batch: Dict[str, Tensor], batch_idx: int):
         outputs = self._evaluation_step(batch, phase="val")
-        self.val_outputs = outputs
+        self.val_outputs.append(outputs)
         return outputs
 
     def on_validation_epoch_end(self) -> None:
         self._end_process(self.val_outputs, "val")
-        self.val_outputs = None
+        self.val_outputs = []
 
     def test_step(self, batch: Dict[str, Tensor], batch_idx: int) -> Dict[str, Tensor]:
         outputs = self._evaluation_step(batch, phase="test")
-        self.test_outputs = outputs
+        self.test_outputs.append(outputs)
         return outputs
 
     def on_test_epoch_end(self) -> None:
         self._end_process(self.test_outputs, "test")
+        self.test_outputs = []
 
     def configure_optimizers(self):
         model = self.forwarder.model
