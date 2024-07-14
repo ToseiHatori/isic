@@ -4,7 +4,7 @@ hydra-colorlog==1.1.0
 pytorch-lightning==2.2.5
 torch-optimizer==0.3.0
 opencv-python==4.10.0.82
-#wandb==0.12.16
+wandb==0.17.4
 scikit-learn==1.5.0
 pfio==1.0.1
 transformers==4.41.1

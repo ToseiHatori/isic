@@ -115,6 +115,7 @@ training:
   project_name: isic
   resume_from: null  # If set, restore all training state from that checkpoint
   debug: false  # If true, run in a debug mode
+  use_wandb: false
   seed: 0  # Random seed passed for seed_everything
   monitor: val/mean_auc
   monitor_mode: max

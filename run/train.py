@@ -8,6 +8,7 @@ import torch
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 
 from run.pl_model import PLModel
 
@@ -29,7 +30,14 @@ def main(cfg: DictConfig, pl_model: type) -> Path:
         is_test_mode = False
 
     # init experiment logger
-    pl_logger = False
+    if not cfg.training.use_wandb or is_test_mode:
+        pl_logger = False
+    else:
+        pl_logger = WandbLogger(
+            project=cfg.training.project_name,
+            save_dir=str(out_dir),
+            name=Path(out_dir).name,
+        )
 
     # init lightning model
     model = pl_model(cfg)

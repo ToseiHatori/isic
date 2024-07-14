@@ -6,11 +6,12 @@ python -m run.train \
   training.batch_size=16 \
   training.batch_size_test=32 \
   training.epoch=10 \
-  dataset.num_records=1000 \
+  dataset.num_records=100 \
   preprocessing.h_resize_to=256 \
   preprocessing.w_resize_to=256 \
   augmentation.use_light_aug=true \
   model.base_model=convnext_base.fb_in22k_ft_in1k \
+  training.use_wandb=true \
   training.num_workers=24 \
   optimizer.lr=2e-5 \
   scheduler.warmup_steps_ratio=0.0 \
