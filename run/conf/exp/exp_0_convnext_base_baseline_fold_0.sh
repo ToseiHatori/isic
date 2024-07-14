@@ -5,8 +5,7 @@ python -m run.train \
   dataset.use_cache=false \
   training.batch_size=16 \
   training.batch_size_test=32 \
-  training.epoch=10 \
-  dataset.num_records=100 \
+  training.epoch=50 \
   preprocessing.h_resize_to=256 \
   preprocessing.w_resize_to=256 \
   augmentation.use_light_aug=true \

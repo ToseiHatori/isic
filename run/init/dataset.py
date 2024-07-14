@@ -3,6 +3,7 @@ from typing import Dict
 from omegaconf import DictConfig
 
 from src.datasets.isic_dataset import ISICDataset
+import pandas as pd
 
 
 def init_datasets_from_config(cfg: DictConfig):
@@ -44,6 +45,21 @@ def get_isic_dataset(
     test_df = df[df["fold"] == test_fold]
     if phase == "train":
         train_positive = train_df[train_df["target"] == 1]
+        # ダウンサンプリング
+        if cfg.downsampling_rate > 0:
+            train_negative = train_df[train_df["target"] == 0]
+            # positiveサンプルの数を取得
+            positive_count = len(train_positive)
+            # negativeサンプルをランダムにサンプリングして、positiveサンプルのn倍の数を取得
+            negative_sample = train_negative.sample(
+                n=positive_count * cfg.downsampling_rate, random_state=42
+            )
+            # positiveとサンプリングしたnegativeを結合
+            train_balanced = pd.concat([train_positive, negative_sample])
+            # データフレームをシャッフル
+            train_df = train_balanced.sample(frac=1, random_state=42).reset_index(
+                drop=True
+            )
 
         train_dataset = ISICDataset(train_df, phase="train", cfg=cfg)
         val_dataset = ISICDataset(val_df, phase="test", cfg=cfg)

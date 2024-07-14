@@ -7,8 +7,7 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
-from sklearn.metrics import (auc, average_precision_score, roc_auc_score,
-                             roc_curve)
+from sklearn.metrics import auc, average_precision_score, roc_auc_score, roc_curve
 from torch import Tensor
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -23,48 +22,18 @@ from src.datasets.wrapper import WrapperDataset
 logger = getLogger(__name__)
 
 
-class ParticipantVisibleError(Exception):
-    pass
-
-
-def pAUC_score(
-    labels: np.ndarray, predictions: np.ndarray, min_tpr: float = 0.80
+def pAUCscore(
+    label: np.ndarray, prediction: np.ndarray, min_tpr: float = 0.80
 ) -> float:
-    """
-    2024 ISIC Challenge metric: pAUC
-
-    Given a list of binary labels and an associated list of prediction scores ranging from [0,1],
-    this function produces the partial area under the receiver operating characteristic (pAUC)
-    above a given true positive rate (TPR).
-
-    Args:
-        labels: Ground truth numpy array of 1s and 0s
-        predictions: Numpy array of prediction scores ranging [0, 1]
-        min_tpr: Minimum true positive rate for partial AUC calculation, default is 0.80
-
-    Returns:
-        Float value representing the partial AUC
-    """
-
-    if not pd.api.types.is_numeric_dtype(predictions):
-        raise ParticipantVisibleError("Submission target column must be numeric")
-
-    y_true = abs(np.asarray(labels) - 1)
-    y_pred = -1.0 * np.asarray(predictions)
+    v_gt = abs(label - 1)
+    v_pred = np.array([1.0 - x for x in prediction])
     max_fpr = abs(1 - min_tpr)
-
-    fpr, tpr, _ = roc_curve(y_true, y_pred)
-    if max_fpr is None or max_fpr == 1:
-        return auc(fpr, tpr)
-    if max_fpr <= 0 or max_fpr > 1:
-        raise ValueError(f"Expected min_tpr in range [0, 1), got: {min_tpr}")
-
-    stop = np.searchsorted(fpr, max_fpr, "right")
-    x_interp = [fpr[stop - 1], fpr[stop]]
-    y_interp = [tpr[stop - 1], tpr[stop]]
-    tpr = np.append(tpr[:stop], np.interp(max_fpr, x_interp, y_interp))
-    fpr = np.append(fpr[:stop], max_fpr)
-    partial_auc = auc(fpr, tpr)
+    partial_auc_scaled = roc_auc_score(v_gt, v_pred, max_fpr=max_fpr)
+    # change scale from [0.5, 1.0] to [0.5 * max_fpr**2, max_fpr]
+    # https://math.stackexchange.com/questions/914823/shift-numbers-into-a-different-range
+    partial_auc = 0.5 * max_fpr ** 2 + (max_fpr - 0.5 * max_fpr ** 2) / (1.0 - 0.5) * (
+        partial_auc_scaled - 0.5
+    )
 
     return partial_auc
 
@@ -254,6 +223,7 @@ class PLModel(LightningModule):
                 "patient_id": epoch_results["patient_id"].reshape(-1),
             }
         )
+        # TOD: sigmoidかけるところではnp.float128にする
         df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1))
         df["label"] = epoch_results["label"]
         df["pred_age_scaled"] = (
@@ -313,8 +283,9 @@ class PLModel(LightningModule):
         except Exception:
             auc_score = 0
         try:
-            pauc_score = pAUC_score(label, pred)
-        except Exception:
+            pauc_score = pAUCscore(label.reshape(-1), pred.reshape(-1))
+        except Exception as e:
+            logger.error(e)
             pauc_score = 0
         try:
             pr_auc_score = average_precision_score(label.reshape(-1), pred.reshape(-1))
