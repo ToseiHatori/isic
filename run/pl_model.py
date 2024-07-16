@@ -174,16 +174,16 @@ class PLModel(LightningModule):
             sync_dist=True,
             batch_size=1,
         )
-        # self.log(
-        #     "lr_head",
-        #     sch.get_last_lr()[1],
-        #     on_step=True,
-        #     on_epoch=False,
-        #     prog_bar=True,
-        #     logger=True,
-        #     sync_dist=True,
-        #     batch_size=1,
-        # )
+        self.log(
+            "lr_head",
+            sch.get_last_lr()[1],
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+            batch_size=1,
+        )
 
         return loss
 
