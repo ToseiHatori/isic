@@ -1,3 +1,9 @@
+## 使い方
+```
+pip install -r requirements.txt
+bash run/conf/exp/exp_01_convnext_base_baseline_fold_4_fold.sh
+```
+
 ## opencvでエラーが出たら
 
 ```

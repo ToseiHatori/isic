@@ -94,6 +94,9 @@ class ISICDataset(Dataset):
             ANATOM_SITE_GENERAL_ENCODER
         )
         self.df["sex_enc"] = self.df["sex"].map(SEX_ENCODER)
+        # IDがstringだとGPUに乗らなくてDDPできないのでintにしておく
+        #self.df["isic_id_int"] = self.df["isic_id"].map(lambda x: int(x.split("ISIC_")[1]))
+        #self.df["patient_id_int"] = self.df["patient_id"].map(lambda x: int(x.split("IP_")[1]))
         self.data_name = data_name
         self.root = self.ROOT_PATH
         self.phase = phase

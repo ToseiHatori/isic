@@ -191,6 +191,17 @@ class PLModel(LightningModule):
         # Aggregate results
         epoch_results: Dict[str, np.ndarray] = {}
         outputs = self.all_gather(outputs)
+        """
+        # デバッグ用
+        for i, gpu_output in enumerate(outputs):
+            print(f"{i} output sizes:")
+            for key in gpu_output:
+                if isinstance(gpu_output[key], Tensor):
+                    print(f"  {key}: {gpu_output[key].size()}")
+                else:
+                    print(f"  {key}: {len(gpu_output[key])}")
+        """
+        
 
         for key in [
             "original_index",
@@ -212,8 +223,14 @@ class PLModel(LightningModule):
                 epoch_results[key] = result.detach().cpu().numpy()
             else:
                 result = np.concatenate([x[key] for x in outputs])
+                """
+                # DDP用のコード（なんかうまく動いていない）
+                if key == "isic_id":
+                    result = ["ISIC_" + str(x).zfill(7) for x in result]
+                elif key == "patient_id":
+                    result = ["IP_" + str(x).zfill(7) for x in result]
+                """
                 epoch_results[key] = result
-
         df = pd.DataFrame(
             data={
                 "original_index": epoch_results["original_index"]
@@ -223,13 +240,13 @@ class PLModel(LightningModule):
                 "patient_id": epoch_results["patient_id"].reshape(-1),
             }
         )
-        # TOD: sigmoidかけるところではnp.float128にする
-        df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1))
+
+        df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1).astype(np.float128))
         df["label"] = epoch_results["label"]
         df["pred_age_scaled"] = (
-            sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1)) * 90
+            sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1).astype(np.float128)) * 90
         )
-        df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1))
+        df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1).astype(np.float128))
         df["pred_anatom_site_general_enc"] = (
             epoch_results["pred_anatom_site_general_enc"].argmax(axis=1).reshape(-1)
         )
