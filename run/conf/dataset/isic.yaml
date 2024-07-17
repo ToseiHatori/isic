@@ -30,5 +30,6 @@ augmentation:
   p_shuffle_lat: 0.0
 positive_aug_num: 0
 downsampling_rate: 100 # positive1に対してnegativeをいくつもってくるか
+downsampling_by_patient: false
 view: null
 lat: null
