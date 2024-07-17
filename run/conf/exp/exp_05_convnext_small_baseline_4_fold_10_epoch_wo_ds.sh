@@ -1,17 +1,21 @@
-for FOLD in {0..3}; do
+FOLD=0
+SCRIPT_NAME=$(basename "$0")
 python -m run.train \
-  dataset.num_folds=4 \
+  dataset.num_folds=5 \
   dataset.test_fold=$FOLD \
   dataset.use_cache=false \
-  training.batch_size=32 \
+  dataset.downsampling_rate=0 \
+  training.batch_size=16 \
   training.batch_size_test=32 \
   training.epoch=10 \
-  preprocessing.h_resize_to=1024 \
-  preprocessing.w_resize_to=512 \
+  preprocessing.h_resize_to=256 \
+  preprocessing.w_resize_to=256 \
   augmentation.use_light_aug=true \
   model.base_model=convnext_small.fb_in22k_ft_in1k \
   training.use_wandb=true \
   training.num_workers=24 \
   optimizer.lr=2e-5 \
+  optimizer.lr_head=2e-4 \
   scheduler.warmup_steps_ratio=0.0 \
-  out_dir=../results/convnext_small_baseline_2_fold_$FOLD; done
+  training.accumulate_grad_batches=2 \
+  out_dir=../results/${SCRIPT_NAME}_${FOLD}
