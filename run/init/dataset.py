@@ -1,9 +1,9 @@
 from typing import Dict
 
+import pandas as pd
 from omegaconf import DictConfig
 
 from src.datasets.isic_dataset import ISICDataset
-import pandas as pd
 
 
 def init_datasets_from_config(cfg: DictConfig):

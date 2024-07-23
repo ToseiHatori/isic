@@ -7,7 +7,8 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
-from sklearn.metrics import auc, average_precision_score, roc_auc_score, roc_curve
+from sklearn.metrics import (auc, average_precision_score, roc_auc_score,
+                             roc_curve)
 from torch import Tensor
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -129,16 +130,22 @@ class PLModel(LightningModule):
                 self.datasets["train"] = train_dataset
                 logger.info(f"{phase}: {len(self.datasets[phase])}")
                 logger.info(f"{phase} positive records: {pos_cnt}")
-                logger.info(f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}")
+                logger.info(
+                    f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}"
+                )
             else:
                 self.datasets[phase] = WrapperDataset(
                     raw_datasets[phase], transforms[phase], phase
                 )
                 pos_cnt = self.datasets[phase].base.df["target"].sum()
-                pos_has_lesion_id_cnt = self.datasets[phase].base.df["has_lesion_id"].sum()
+                pos_has_lesion_id_cnt = (
+                    self.datasets[phase].base.df["has_lesion_id"].sum()
+                )
                 logger.info(f"{phase}: {len(self.datasets[phase])}")
                 logger.info(f"{phase} positive records: {pos_cnt}")
-                logger.info(f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}")
+                logger.info(
+                    f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}"
+                )
 
         logger.info(
             f"training steps per epoch: {len(self.datasets['train'])/cfg.training.batch_size}"
