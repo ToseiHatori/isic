@@ -88,6 +88,7 @@ class ISICDataset(Dataset):
         )  # 後でloglossで評価するのでクソでかい数字で割っておく
         self.df["sex"] = self.df["sex"].fillna("male")
         self.df["anatom_site_general"] = self.df["anatom_site_general"].fillna("unk")
+        self.df["has_lesion_id"] = self.df["lesion_id"].notnull().astype(int)
         self.df = self.df.infer_objects()  # これやっとかないと警告が出る
         self.df = self.df.fillna(0)
         self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
@@ -95,8 +96,8 @@ class ISICDataset(Dataset):
         )
         self.df["sex_enc"] = self.df["sex"].map(SEX_ENCODER)
         # IDがstringだとGPUに乗らなくてDDPできないのでintにしておく
-        #self.df["isic_id_int"] = self.df["isic_id"].map(lambda x: int(x.split("ISIC_")[1]))
-        #self.df["patient_id_int"] = self.df["patient_id"].map(lambda x: int(x.split("IP_")[1]))
+        # self.df["isic_id_int"] = self.df["isic_id"].map(lambda x: int(x.split("ISIC_")[1]))
+        # self.df["patient_id_int"] = self.df["patient_id"].map(lambda x: int(x.split("IP_")[1]))
         self.data_name = data_name
         self.root = self.ROOT_PATH
         self.phase = phase
@@ -141,6 +142,7 @@ class ISICDataset(Dataset):
             "age_scaled": self.df.loc[index, "age_scaled"],
             "sex_enc": self.df.loc[index, "sex_enc"],
             "anatom_site_general_enc": self.df.loc[index, "anatom_site_general_enc"],
+            "has_lesion_id": self.df.loc[index, "has_lesion_id"],
         }
         return res
 
