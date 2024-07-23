@@ -58,22 +58,35 @@ class Forwarder(nn.Module):
         logits_age_scaled,
         logits_sex_enc,
         logits_anatom_site_general_enc,
+        logits_has_lesion_id,
         labels,
         labels_age_scaled,
         labels_sex_enc,
         labels_anatom_site_general_enc,
+        labels_has_lesion_id,
     ):
         cfg = self.cfg.loss
-        loss = self.loss_bce(logits, labels) * cfg.target_weight
-        loss += (
-            self.loss_bce(logits_age_scaled, labels_age_scaled) * cfg.age_scaled_weight
+        loss_target = self.loss_bce(logits, labels)
+        loss_age_scaled = self.loss_bce(logits_age_scaled, labels_age_scaled)
+        loss_sex_enc = self.loss_bce(logits_sex_enc, labels_sex_enc)
+        loss_anatom_site_general_enc = self.loss_ce(
+            logits_anatom_site_general_enc, labels_anatom_site_general_enc
         )
-        loss += self.loss_bce(logits_sex_enc, labels_sex_enc) * cfg.sex_enc_weight
-        loss += (
-            self.loss_ce(logits_anatom_site_general_enc, labels_anatom_site_general_enc)
-            * cfg.anatom_site_general_enc_weight
+        loss_has_lesion_id = self.loss_bce(logits_has_lesion_id, labels_has_lesion_id)
+
+        loss = loss_target.clone() * cfg.target_weight
+        loss += loss_age_scaled * cfg.age_scaled_weight
+        loss += loss_sex_enc * cfg.sex_enc_weight
+        loss += loss_anatom_site_general_enc * cfg.anatom_site_general_enc_weight
+        loss += loss_has_lesion_id * cfg.has_lesion_id_weight
+        return (
+            loss,
+            loss_target,
+            loss_age_scaled,
+            loss_sex_enc,
+            loss_anatom_site_general_enc,
+            loss_has_lesion_id,
         )
-        return loss
 
     def forward(
         self, batch: Dict[str, Tensor], phase: str, epoch=None
@@ -98,6 +111,7 @@ class Forwarder(nn.Module):
         labels_age_scaled = batch["age_scaled"].to(torch.float16)
         labels_sex_enc = batch["sex_enc"].to(torch.float16)
         labels_anatom_site_general_enc = batch["anatom_site_general_enc"]
+        labels_has_lesion_id = batch["has_lesion_id"].to(torch.float16)
 
         if phase == "train":
             with torch.set_grad_enabled(True):
@@ -107,6 +121,9 @@ class Forwarder(nn.Module):
                 logits_sex_enc = self.model.head.head_sex_enc(embed_features)
                 logits_anatom_site_general_enc = (
                     self.model.head.head_anatom_site_general_enc(embed_features)
+                )
+                logits_has_lesion_id = self.model.head.head_has_lesion_id(
+                    embed_features
                 )
         else:
             if phase == "test":
@@ -118,6 +135,9 @@ class Forwarder(nn.Module):
                     logits_anatom_site_general_enc = (
                         self.model.head.head_anatom_site_general_enc(embed_features)
                     )
+                    logits_has_lesion_id = self.model.head.head_has_lesion_id(
+                        embed_features
+                    )
             elif phase == "val":
                 embed_features = self.model.forward_features(inputs)
                 if use_multi_view:
@@ -128,22 +148,40 @@ class Forwarder(nn.Module):
                 logits_anatom_site_general_enc = (
                     self.model.head.head_anatom_site_general_enc(embed_features)
                 )
+                logits_has_lesion_id = self.model.head.head_has_lesion_id(
+                    embed_features
+                )
 
-        loss = self.loss(
+        (
+            loss,
+            loss_target,
+            loss_age_scaled,
+            loss_sex_enc,
+            loss_anatom_site_general_enc,
+            loss_has_lesion_id,
+        ) = self.loss(
             logits=logits,
             logits_age_scaled=logits_age_scaled,
             logits_sex_enc=logits_sex_enc,
             logits_anatom_site_general_enc=logits_anatom_site_general_enc,
+            logits_has_lesion_id=logits_has_lesion_id,
             labels=labels,
             labels_age_scaled=labels_age_scaled,
             labels_sex_enc=labels_sex_enc,
             labels_anatom_site_general_enc=labels_anatom_site_general_enc,
+            labels_has_lesion_id=labels_has_lesion_id,
         )
         return (
             logits,
             loss,
+            loss_target,
+            loss_age_scaled,
+            loss_sex_enc,
+            loss_anatom_site_general_enc,
+            loss_has_lesion_id,
             embed_features,
             logits_age_scaled,
             logits_sex_enc,
             logits_anatom_site_general_enc,
+            logits_has_lesion_id,
         )

@@ -61,8 +61,12 @@ def get_isic_dataset(
                 drop=True
             )
         if cfg.downsampling_by_patient:
-            target_one_patient_ids = train_df[train_df['target'] == 1]['patient_id'].unique()
-            train_df = train_df[train_df['patient_id'].isin(target_one_patient_ids)].reset_index(drop=True)
+            target_one_patient_ids = train_df[train_df["target"] == 1][
+                "patient_id"
+            ].unique()
+            train_df = train_df[
+                train_df["patient_id"].isin(target_one_patient_ids)
+            ].reset_index(drop=True)
 
         train_dataset = ISICDataset(train_df, phase="train", cfg=cfg)
         val_dataset = ISICDataset(val_df, phase="test", cfg=cfg)

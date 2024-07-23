@@ -113,6 +113,7 @@ class PLModel(LightningModule):
                 pos_cnt = train_dataset.base.df["target"].sum() * (
                     cfg.dataset.positive_aug_num + 1
                 )
+                pos_has_lesion_id_cnt = train_dataset.base.df["has_lesion_id"].sum()
                 if cfg.dataset.positive_aug_num > 0:
                     train_positive_dataset = WrapperDataset(
                         raw_datasets["train_positive"],
@@ -128,13 +129,16 @@ class PLModel(LightningModule):
                 self.datasets["train"] = train_dataset
                 logger.info(f"{phase}: {len(self.datasets[phase])}")
                 logger.info(f"{phase} positive records: {pos_cnt}")
+                logger.info(f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}")
             else:
                 self.datasets[phase] = WrapperDataset(
                     raw_datasets[phase], transforms[phase], phase
                 )
                 pos_cnt = self.datasets[phase].base.df["target"].sum()
+                pos_has_lesion_id_cnt = self.datasets[phase].base.df["has_lesion_id"].sum()
                 logger.info(f"{phase}: {len(self.datasets[phase])}")
                 logger.info(f"{phase} positive records: {pos_cnt}")
+                logger.info(f"{phase} positive lesion_id records: {pos_has_lesion_id_cnt}")
 
         logger.info(
             f"training steps per epoch: {len(self.datasets['train'])/cfg.training.batch_size}"
@@ -148,13 +152,44 @@ class PLModel(LightningModule):
 
     def training_step(self, batch: Dict[str, Tensor], batch_idx: int):
         additional_info = {}
-        _, loss, _, _, _, _ = self.forwarder.forward(
+        (
+            _,
+            loss,
+            loss_target,
+            loss_age_scaled,
+            loss_sex_enc,
+            loss_anatom_site_general_enc,
+            loss_has_lesion_id,
+            _,
+            _,
+            _,
+            _,
+            _,
+        ) = self.forwarder.forward(
             batch, phase="train", epoch=self.current_epoch, **additional_info
         )
 
         self.log(
             "train_loss",
             loss.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train_loss_target",
+            loss_target.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train_loss_has_lesion_id",
+            loss_has_lesion_id.detach().item(),
             on_step=False,
             on_epoch=True,
             prog_bar=True,
@@ -201,7 +236,6 @@ class PLModel(LightningModule):
                 else:
                     print(f"  {key}: {len(gpu_output[key])}")
         """
-        
 
         for key in [
             "original_index",
@@ -212,6 +246,7 @@ class PLModel(LightningModule):
             "pred_age_scaled",
             "pred_sex_enc",
             "pred_anatom_site_general_enc",
+            "pred_has_lesion_id",
             "embed_features",
         ]:
             if key == "embed_features":
@@ -241,14 +276,24 @@ class PLModel(LightningModule):
             }
         )
 
-        df["pred"] = sigmoid(epoch_results["pred"][:, 0].reshape(-1).astype(np.float128))
+        df["pred"] = sigmoid(
+            epoch_results["pred"][:, 0].reshape(-1).astype(np.float128)
+        )
         df["label"] = epoch_results["label"]
         df["pred_age_scaled"] = (
-            sigmoid(epoch_results["pred_age_scaled"][:, 0].reshape(-1).astype(np.float128)) * 90
+            sigmoid(
+                epoch_results["pred_age_scaled"][:, 0].reshape(-1).astype(np.float128)
+            )
+            * 90
         )
-        df["pred_sex_enc"] = sigmoid(epoch_results["pred_sex_enc"][:, 0].reshape(-1).astype(np.float128))
+        df["pred_sex_enc"] = sigmoid(
+            epoch_results["pred_sex_enc"][:, 0].reshape(-1).astype(np.float128)
+        )
         df["pred_anatom_site_general_enc"] = (
             epoch_results["pred_anatom_site_general_enc"].argmax(axis=1).reshape(-1)
+        )
+        df["pred_has_lesion_id"] = sigmoid(
+            epoch_results["pred_has_lesion_id"][:, 0].reshape(-1).astype(np.float128)
         )
         df = df.sort_values(by="original_index")
 
@@ -274,6 +319,20 @@ class PLModel(LightningModule):
             .numpy()
         )
         mean_loss = np.mean(loss)
+        loss_target = (
+            torch.cat([torch.atleast_1d(x["loss_target"]) for x in outputs])
+            .detach()
+            .cpu()
+            .numpy()
+        )
+        mean_loss_target = np.mean(loss_target)
+        loss_has_lesion_id = (
+            torch.cat([torch.atleast_1d(x["loss_has_lesion_id"]) for x in outputs])
+            .detach()
+            .cpu()
+            .numpy()
+        )
+        mean_loss_has_lesion_id = np.mean(loss_has_lesion_id)
 
         if phase != "test" and self.trainer.global_rank == 0:
             test_results_filepath = Path(self.cfg.out_dir) / "test_results"
@@ -313,6 +372,15 @@ class PLModel(LightningModule):
 
         # Log items
         self.log(f"{phase}/loss", mean_loss, prog_bar=True, sync_dist=True)
+        self.log(
+            f"{phase}/loss_target", mean_loss_target, prog_bar=True, sync_dist=True
+        )
+        self.log(
+            f"{phase}/loss_has_lesion_id",
+            mean_loss_has_lesion_id,
+            prog_bar=True,
+            sync_dist=True,
+        )
         self.log(f"{phase}/pAUC", pauc_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/pf_score", pf_score_000, prog_bar=False, sync_dist=True)
         self.log(f"{phase}/pr_auc", pr_auc_score, prog_bar=True, sync_dist=True)
@@ -323,14 +391,25 @@ class PLModel(LightningModule):
         (
             preds,
             loss,
+            loss_target,
+            loss_age_scaled,
+            loss_sex_enc,
+            loss_anatom_site_general_enc,
+            loss_has_lesion_id,
             embed_features,
             preds_age_scaled,
             preds_sex_enc,
             preds_anatom_site_general_enc,
+            preds_has_lesion_id,
         ) = self.forwarder.forward(batch, phase=phase, epoch=self.current_epoch)
 
         output = {
             "loss": loss,
+            "loss_target": loss_target,
+            "loss_age_scaled": loss_age_scaled,
+            "loss_sex_enc": loss_sex_enc,
+            "loss_anatom_site_general_enc": loss_anatom_site_general_enc,
+            "loss_has_lesion_id": loss_has_lesion_id,
             "label": batch["label"],
             "original_index": batch["original_index"],
             "patient_id": batch["patient_id"],
@@ -339,6 +418,7 @@ class PLModel(LightningModule):
             "pred_age_scaled": preds_age_scaled.detach(),
             "pred_sex_enc": preds_sex_enc.detach(),
             "pred_anatom_site_general_enc": preds_anatom_site_general_enc.detach(),
+            "pred_has_lesion_id": preds_has_lesion_id.detach(),
             "embed_features": embed_features.detach(),
         }
         return output

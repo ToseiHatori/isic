@@ -47,7 +47,9 @@ class Preprocessing:
                     p=0.25,
                 ),
                 A.Normalize(mean=self.mean, std=self.std),
-                A.CoarseDropout(max_holes=16, max_height=64, max_width=64, p=cfg.p_coarse_dropout),
+                A.CoarseDropout(
+                    max_holes=cfg.coarse_dropout_max_holes, max_height=cfg.coarse_dropout_max_size, max_width=cfg.coarse_dropout_max_size, p=cfg.p_coarse_dropout
+                ),
                 ToTensorV2(transpose_mask=True),
             ]
         elif cfg.use_aug:
@@ -84,7 +86,9 @@ class Preprocessing:
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.5),
                 A.Normalize(mean=self.mean, std=self.std),
-                A.CoarseDropout(max_holes=16, max_height=64, max_width=64, p=0.2),
+                A.CoarseDropout(
+                    max_holes=cfg.coarse_dropout_max_holes, max_height=cfg.coarse_dropout_max_size, max_width=cfg.coarse_dropout_max_size, p=cfg.p_coarse_dropout
+                ),
                 ToTensorV2(transpose_mask=True),
             ]
         elif cfg.use_heavy_aug:
