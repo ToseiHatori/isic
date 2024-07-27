@@ -32,7 +32,7 @@ for FOLD in {0..4}; do
     forwarder.loss.sex_enc_weight=0.01 \
     forwarder.loss.anatom_site_general_enc_weight=0.01 \
     forwarder.loss.has_lesion_id_weight=0.1 \
-    forwarder.loss.tbp_lv_H_weight: 0.01 \
+    forwarder.loss.tbp_lv_H_weight=0.01 \
     optimizer.lr=2e-5 \
     optimizer.lr_head=2e-4 \
     scheduler.warmup_steps_ratio=0.0 \
