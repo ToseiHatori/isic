@@ -83,12 +83,17 @@ class ISICDataset(Dataset):
         self.df = df.copy()
         self.df["original_index"] = df.index
         self.df.reset_index(inplace=True)
+        # 前処理系(ここでやるべきではないとは思っている)
         self.df["age_scaled"] = (
             self.df["age_approx"].fillna(60) / 90
         )  # 後でloglossで評価するのでクソでかい数字で割っておく
         self.df["sex"] = self.df["sex"].fillna("male")
         self.df["anatom_site_general"] = self.df["anatom_site_general"].fillna("unk")
         self.df["has_lesion_id"] = self.df["lesion_id"].notnull().astype(int)
+        # 最小値が-1.5くらい、最大値が105くらいなので[0, 1]に収まるように
+        self.df["tbp_lv_H"] = (self.df["tbp_lv_H"] + 2) / 110
+
+        # 0fill
         self.df = self.df.infer_objects()  # これやっとかないと警告が出る
         self.df = self.df.fillna(0)
         self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
@@ -143,6 +148,7 @@ class ISICDataset(Dataset):
             "sex_enc": self.df.loc[index, "sex_enc"],
             "anatom_site_general_enc": self.df.loc[index, "anatom_site_general_enc"],
             "has_lesion_id": self.df.loc[index, "has_lesion_id"],
+            "tbp_lv_H": self.df.loc[index, "tbp_lv_H"],
         }
         return res
 

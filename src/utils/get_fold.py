@@ -18,11 +18,11 @@ for fold, (train_idx, val_idx) in enumerate(
     sgkf.split(train_df, train_df["target"], groups=train_df["patient_id"])
 ):
     train_df.loc[val_idx, "fold"] = fold
-    
+
     # foldごとの件数や目的変数の件数をロギング
     fold_size = len(val_idx)
     target_counts = train_df.loc[val_idx, "target"].value_counts().to_dict()
-    
+
     logger.info(f"Fold {fold}")
     logger.info(f"Total samples in fold: {fold_size}")
     logger.info(f"Target counts in fold: {target_counts}")

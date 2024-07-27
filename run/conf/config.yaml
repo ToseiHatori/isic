@@ -75,6 +75,7 @@ forwarder:
     anatom_site_general_enc_weight: 0.0
     pr_auc_weight: 0.0
     has_lesion_id_weight: 0.0
+    tbp_lv_H_weight: 0.0
 
 #====
 # Dataset

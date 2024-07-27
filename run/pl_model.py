@@ -7,8 +7,7 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
-from sklearn.metrics import (auc, average_precision_score, roc_auc_score,
-                             roc_curve)
+from sklearn.metrics import auc, average_precision_score, roc_auc_score, roc_curve
 from torch import Tensor
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -167,6 +166,8 @@ class PLModel(LightningModule):
             loss_sex_enc,
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
+            loss_tbp_lv_H,
+            _,
             _,
             _,
             _,
@@ -195,6 +196,33 @@ class PLModel(LightningModule):
             sync_dist=True,
         )
         self.log(
+            "train_loss_age_scaled",
+            loss_age_scaled.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train_loss_sex_enc",
+            loss_sex_enc.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train_loss_anatom_site_general_enc",
+            loss_anatom_site_general_enc.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+        self.log(
             "train_loss_has_lesion_id",
             loss_has_lesion_id.detach().item(),
             on_step=False,
@@ -203,7 +231,15 @@ class PLModel(LightningModule):
             # logger=True,
             sync_dist=True,
         )
-
+        self.log(
+            "train_loss_tbp_lv_H",
+            loss_tbp_lv_H.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
         sch = self.lr_schedulers()
         sch.step()
         self.log(
@@ -254,6 +290,7 @@ class PLModel(LightningModule):
             "pred_sex_enc",
             "pred_anatom_site_general_enc",
             "pred_has_lesion_id",
+            "pred_tbp_lv_H",
             "embed_features",
         ]:
             if key == "embed_features":
@@ -302,6 +339,12 @@ class PLModel(LightningModule):
         df["pred_has_lesion_id"] = sigmoid(
             epoch_results["pred_has_lesion_id"][:, 0].reshape(-1).astype(np.float128)
         )
+        df["pred_tbp_lv_H"] = (
+            sigmoid(
+                epoch_results["pred_tbp_lv_H"][:, 0].reshape(-1).astype(np.float128)
+            )
+            * 110
+        ) + 2
         df = df.sort_values(by="original_index")
 
         if phase == "test" and self.trainer.global_rank == 0:
@@ -318,28 +361,6 @@ class PLModel(LightningModule):
                 df_vindr = pd.read_csv("./vindr/vindr_train.csv")
                 df_vindr["cancer"] = df["pred"]
                 df_vindr.to_csv(test_results_filepath / "vinder_pl.csv", index=False)
-
-        loss = (
-            torch.cat([torch.atleast_1d(x["loss"]) for x in outputs])
-            .detach()
-            .cpu()
-            .numpy()
-        )
-        mean_loss = np.mean(loss)
-        loss_target = (
-            torch.cat([torch.atleast_1d(x["loss_target"]) for x in outputs])
-            .detach()
-            .cpu()
-            .numpy()
-        )
-        mean_loss_target = np.mean(loss_target)
-        loss_has_lesion_id = (
-            torch.cat([torch.atleast_1d(x["loss_has_lesion_id"]) for x in outputs])
-            .detach()
-            .cpu()
-            .numpy()
-        )
-        mean_loss_has_lesion_id = np.mean(loss_has_lesion_id)
 
         if phase != "test" and self.trainer.global_rank == 0:
             test_results_filepath = Path(self.cfg.out_dir) / "test_results"
@@ -378,16 +399,24 @@ class PLModel(LightningModule):
         mean_auc_score = (auc_score + pr_auc_score + pauc_score) / 3
 
         # Log items
-        self.log(f"{phase}/loss", mean_loss, prog_bar=True, sync_dist=True)
-        self.log(
-            f"{phase}/loss_target", mean_loss_target, prog_bar=True, sync_dist=True
-        )
-        self.log(
-            f"{phase}/loss_has_lesion_id",
-            mean_loss_has_lesion_id,
-            prog_bar=True,
-            sync_dist=True,
-        )
+        for loss_name in [
+            "loss",
+            "loss_age_scaled",
+            "loss_sex_enc",
+            "loss_anatom_site_general_enc",
+            "loss_has_lesion_id",
+            "loss_tbp_lv_H",
+        ]:
+            tmp_loss = (
+                torch.cat([torch.atleast_1d(x[loss_name]) for x in outputs])
+                .detach()
+                .cpu()
+                .numpy()
+            )
+            tmp_mean_loss = np.mean(tmp_loss)
+            self.log(
+                f"{phase}/{loss_name}", tmp_mean_loss, prog_bar=True, sync_dist=True
+            )
         self.log(f"{phase}/pAUC", pauc_score, prog_bar=True, sync_dist=True)
         self.log(f"{phase}/pf_score", pf_score_000, prog_bar=False, sync_dist=True)
         self.log(f"{phase}/pr_auc", pr_auc_score, prog_bar=True, sync_dist=True)
@@ -403,11 +432,13 @@ class PLModel(LightningModule):
             loss_sex_enc,
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
+            loss_tbp_lv_H,
             embed_features,
             preds_age_scaled,
             preds_sex_enc,
             preds_anatom_site_general_enc,
             preds_has_lesion_id,
+            preds_tbp_lv_H,
         ) = self.forwarder.forward(batch, phase=phase, epoch=self.current_epoch)
 
         output = {
@@ -417,6 +448,7 @@ class PLModel(LightningModule):
             "loss_sex_enc": loss_sex_enc,
             "loss_anatom_site_general_enc": loss_anatom_site_general_enc,
             "loss_has_lesion_id": loss_has_lesion_id,
+            "loss_tbp_lv_H": loss_tbp_lv_H,
             "label": batch["label"],
             "original_index": batch["original_index"],
             "patient_id": batch["patient_id"],
@@ -426,6 +458,7 @@ class PLModel(LightningModule):
             "pred_sex_enc": preds_sex_enc.detach(),
             "pred_anatom_site_general_enc": preds_anatom_site_general_enc.detach(),
             "pred_has_lesion_id": preds_has_lesion_id.detach(),
+            "pred_tbp_lv_H": preds_tbp_lv_H.detach(),
             "embed_features": embed_features.detach(),
         }
         return output

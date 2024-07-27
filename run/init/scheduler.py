@@ -3,9 +3,13 @@ from typing import Optional
 
 import torch
 from omegaconf import DictConfig
-from torch.optim.lr_scheduler import (CosineAnnealingLR,
-                                      CosineAnnealingWarmRestarts,
-                                      ExponentialLR, ReduceLROnPlateau, StepLR)
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    CosineAnnealingWarmRestarts,
+    ExponentialLR,
+    ReduceLROnPlateau,
+    StepLR,
+)
 from torch.optim.optimizer import Optimizer
 from transformers import get_cosine_schedule_with_warmup
 
