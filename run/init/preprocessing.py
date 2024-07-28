@@ -135,7 +135,7 @@ class Preprocessing:
                 A.GaussNoise(p=cfg.p_noise),
                 A.OneOf(
                     [
-                        A.imageCompression(),
+                        A.ImageCompression(),
                         A.Downscale(scale_min=0.1, scale_max=0.15),
                     ],
                     p=0.2,
