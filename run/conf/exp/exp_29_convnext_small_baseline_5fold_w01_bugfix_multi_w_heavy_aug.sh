@@ -5,7 +5,7 @@ gpu_index=$1
 
 SCRIPT_NAME=$(basename "$0")
 
-for FOLD in {0..4}; do
+for FOLD in {3..4}; do
   CUDA_VISIBLE_DEVICES=$gpu_index python -m run.train \
     dataset.num_folds=4 \
     dataset.fold_path=./fold/train_with_fold_5.csv \
