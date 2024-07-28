@@ -20,7 +20,7 @@ for FOLD in {0..4}; do
     preprocessing.w_resize_to=256 \
     preprocessing.mean="[0.485, 0.456, 0.406]" \
     preprocessing.std="[0.229, 0.224, 0.225]" \
-    augmentation.use_aug=true \
+    augmentation.use_heavy_aug=true \
     model.base_model=convnext_small.fb_in22k_ft_in1k \
     training.use_wandb=true \
     training.num_workers=24 \
