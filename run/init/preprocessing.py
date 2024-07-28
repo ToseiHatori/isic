@@ -85,7 +85,7 @@ class Preprocessing:
                     p=0.25,
                 ),
                 A.RandomBrightnessContrast(p=cfg.p_bright_contrast),
-                A.Cutout(p=cfg.p_cutout),
+                #A.Cutout(p=cfg.p_cutout),
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.5),
                 A.Normalize(mean=self.mean, std=self.std),
@@ -135,7 +135,7 @@ class Preprocessing:
                 A.GaussNoise(p=cfg.p_noise),
                 A.OneOf(
                     [
-                        A.JpegCompression(),
+                        A.imageCompression(),
                         A.Downscale(scale_min=0.1, scale_max=0.15),
                     ],
                     p=0.2,
@@ -146,12 +146,12 @@ class Preprocessing:
                 A.RandomGridShuffle(grid=(2, 2), p=cfg.p_shuffle),
                 A.Posterize(p=cfg.p_posterize),
                 A.RandomBrightnessContrast(p=cfg.p_bright_contrast),
-                A.Cutout(
-                    max_h_size=int(self.h_resize_to * 0.1),
-                    max_w_size=int(self.w_resize_to * 0.1),
-                    num_holes=5,
-                    p=0.5,
-                ),
+                #A.Cutout(
+                #    max_h_size=int(self.h_resize_to * 0.1),
+                #    max_w_size=int(self.w_resize_to * 0.1),
+                #    num_holes=5,
+                #    p=0.5,
+                #),
                 A.HorizontalFlip(p=0.5),
                 A.Normalize(mean=self.mean, std=self.std),
                 ToTensorV2(transpose_mask=True),
