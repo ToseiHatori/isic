@@ -401,6 +401,7 @@ class PLModel(LightningModule):
         # Log items
         for loss_name in [
             "loss",
+            "loss_target",
             "loss_age_scaled",
             "loss_sex_enc",
             "loss_anatom_site_general_enc",
