@@ -28,6 +28,15 @@ def main(base_dir):
             shutil.copy(src_config, dest_config)
         else:
             print(f"Warning: {src_config} does not exist")
+        
+        # test_result.csvのコピー
+        src_result = os.path.join(src_dir, "test_results", "test_results.csv")
+        dest_result = os.path.join(dest_dir, "test_results.csv")
+        if os.path.exists(src_result):
+            print(f"Copying {src_result} to {dest_result}")
+            shutil.copy(src_result, dest_result)
+        else:
+            print(f"Warning: {src_result} does not exist")
 
         # 最新のチェックポイントディレクトリの確認
         try:
