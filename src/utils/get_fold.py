@@ -1,6 +1,7 @@
+import logging
+
 import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
-import logging
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)

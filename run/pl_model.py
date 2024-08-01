@@ -7,7 +7,8 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
-from sklearn.metrics import auc, average_precision_score, roc_auc_score, roc_curve
+from sklearn.metrics import (auc, average_precision_score, roc_auc_score,
+                             roc_curve)
 from torch import Tensor
 from torch.utils.data import ConcatDataset, DataLoader
 
