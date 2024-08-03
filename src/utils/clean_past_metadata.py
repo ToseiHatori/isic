@@ -50,4 +50,6 @@ for cat in df_past["isic_challenge_category"].unique():
     df_past_cat = df_past[df_past["isic_challenge_category"] == cat].reset_index(
         drop=True
     )
-    df_past.to_csv(f"./data/past_metadata_{cat}.csv")
+    print(len(df_past_cat))
+    print(df_past_cat["target"].mean())
+    df_past.to_csv(f"./data/past_metadata_{cat}.csv", index=False)

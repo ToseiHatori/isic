@@ -38,18 +38,3 @@ python src/utils/clean_past_metadata.py
 python src/utils/get_fold.py --input ./data/past_metadata_challenge_2020_training.csv --output ./fold/train_2020_with_fold_5.csv 
 python src/utils/get_fold.py --input ./data/past_metadata_challenge_2019_training.csv --output ./fold/train_2019_with_fold_5.csv 
 ```
-
-bash run/conf/exp/exp_32_resnet18_baseline_5fold_lr.sh 0 
-bash run/conf/exp/exp_33_resnet18_baseline_5fold_lr.sh 0 
-echo done
-
-bash run/conf/exp/exp_34_efficientnet_b0_baseline_5fold_lr.sh 1 
-bash run/conf/exp/exp_35_efficientnet_b0_baseline_5fold_lr.sh 1 
-
-echo done
-
-
-CUDA_VISIBLE_DEVICES=1 bash run/conf/exp/exp_25_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w8.sh 
-CUDA_VISIBLE_DEVICES=1 bash run/conf/exp/exp_26_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w9.sh 
-CUDA_VISIBLE_DEVICES=1 bash run/conf/exp/exp_27_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w10.sh 
-echo done

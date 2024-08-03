@@ -36,16 +36,24 @@ class ISICDataset(Dataset):
         seed: int = 2023,
         num_records: int = 0,
         fold_path: Optional[str] = "./fold/train_with_fold.csv",
+        past_fold_path: list[str] = None,
         data_type: str = "train",
-        pl_path: Optional[str] = None,
     ) -> pd.DataFrame:
         root = cls.ROOT_PATH
 
         if data_type == "train":
             if fold_path is not None:
                 df = pd.read_csv(fold_path, low_memory=False)
+                df["is_past"] = 0
                 if num_records:
                     df = df[:num_records]
+                if past_fold_path is not None:
+                    for _path in past_fold_path:
+                        print("past_data -> {}...")
+                        past_df = pd.read_csv(_path, low_memory=False)
+                        past_df["is_past"] = 1
+                        df = pd.concat([df, past_df], axis=0)
+                    df = df.reset_index(drop=True)
                 return df
             else:
                 # not supported
@@ -111,6 +119,7 @@ class ISICDataset(Dataset):
         self.phase = phase
         self.cfg_aug = cfg.augmentation
         self.fp_hdf = h5py.File("./data/train-image.hdf5", mode="r")
+        self.past_fp_hdf = h5py.File("./data/image_256sq.hdf5", mode="r")
 
         if cfg.use_cache:
             cache_dir = "/tmp/isic/"
@@ -125,18 +134,20 @@ class ISICDataset(Dataset):
         return len(self.df)
 
     def _read_image(self, index):
-        root = self.ROOT_PATH
         image_id = self.df.at[index, "isic_id"]
-        if self.data_name == "isic" or self.data_name == "vindr":
-            # 画像データを読み込む（例: self.fp_hdf[image_id][()]）
+        # 画像データを読み込む
+        is_past = self.df.at[index, "is_past"]
+        if is_past:
+            image_data = self.past_fp_hdf[image_id][()]
+        else:
             image_data = self.fp_hdf[image_id][()]
-            # BytesIOオブジェクトを作成
-            image_stream = BytesIO(image_data)
-            # BytesIOからバイトデータを取得
-            byte_array = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
-            # OpenCVで画像データをデコード
-            image = cv2.imdecode(byte_array, cv2.IMREAD_COLOR)
-            return image, 0
+        # BytesIOオブジェクトを作成
+        image_stream = BytesIO(image_data)
+        # BytesIOからバイトデータを取得
+        byte_array = np.asarray(bytearray(image_stream.read()), dtype=np.uint8)
+        # OpenCVで画像データをデコード
+        image = cv2.imdecode(byte_array, cv2.IMREAD_COLOR)
+        return image, 0
 
     def read_image(self, index):
         if self._cache:
