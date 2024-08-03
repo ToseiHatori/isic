@@ -1,7 +1,6 @@
 ## 使い方
 ```
 pip install -r requirements.txt
-bash run/conf/exp/exp_01_convnext_base_baseline_fold_4_fold.sh
 ```
 
 ## opencvでエラーが出たら
@@ -17,9 +16,13 @@ pip install opencv-python==4.9.0.80
 git config --global --add safe.directory /home/working
 ```
 
-CUDA_VISIBLE_DEVICES=0 bash run/conf/exp/exp_22_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w5.sh 
-CUDA_VISIBLE_DEVICES=0 bash run/conf/exp/exp_23_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w6.sh 
-CUDA_VISIBLE_DEVICES=0 bash run/conf/exp/exp_24_convnext_small_baseline_4_fold_5_epoch_ds_patient_cdp0_lesion_w7.sh 
+bash run/conf/exp/exp_32_resnet18_baseline_5fold_lr.sh 0 
+bash run/conf/exp/exp_33_resnet18_baseline_5fold_lr.sh 0 
+echo done
+
+bash run/conf/exp/exp_34_efficientnet_b0_baseline_5fold_lr.sh 1 
+bash run/conf/exp/exp_35_efficientnet_b0_baseline_5fold_lr.sh 1 
+
 echo done
 
 
