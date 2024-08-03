@@ -18,6 +18,9 @@ ANATOM_SITE_GENERAL_ENCODER = {
     "lower extremity": 3,
     "posterior torso": 4,
     "upper extremity": 5,
+    "lateral torso": 6,
+    "palms/soles": 7,
+    "oral/genital": 8,
 }
 SEX_ENCODER = {"male": 0, "female": 1}
 

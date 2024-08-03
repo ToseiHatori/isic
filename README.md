@@ -34,25 +34,9 @@ isic metadata download --collections 65 > isic_meta_challenge_2019_training.csv
 isic metadata download --collections 70 > isic_meta_challenge_2020_training.csv
 ```
 ```py
-isic_ids2category = {}
-for file in sorted(glob.glob("./past_metadata/isic*.csv")):
-    df = pd.read_csv(file, low_memory=False)
-    category = file.split("isic_meta_")[-1].split(".csv")[0]
-    print(f"{category} len {len(df)}")
-    for _isic_id in df["isic_id"].values:
-        if _isic_id in isic_ids2category:
-            # デバッグ用
-            #print(_isic_id, category, isic_ids2category[_isic_id])
-            isic_ids2category[_isic_id] = category
-            pass
-        else:
-            isic_ids2category[_isic_id] = category
-df_past = pd.read_csv("./data/metadata.csv", low_memory=False)
-df_past["isic_challenge_category"] = df_past["isic_id"].map(isic_ids2category)
-dup = pd.read_csv("./data/2020_Challenge_duplicates.csv")
-df_past = df_past.merge(dup[["ISIC_id", "ISIC_id_paired"]], how="left", left_on="isic_id", right_on="ISIC_id")
-df_past = df_past[df_past["ISIC_id_paired"].isnull()].reset_index(drop=True)
-del df_past["ISIC_id_paired"]
+python src/utils/clean_past_metadata.py 
+python src/utils/get_fold.py --input ./data/past_metadata_challenge_2020_training.csv --output ./fold/train_2020_with_fold_5.csv 
+python src/utils/get_fold.py --input ./data/past_metadata_challenge_2019_training.csv --output ./fold/train_2019_with_fold_5.csv 
 ```
 
 bash run/conf/exp/exp_32_resnet18_baseline_5fold_lr.sh 0 
