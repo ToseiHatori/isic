@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
+from src.datasets.isic_dataset import ANATOM_SITE_GENERAL_ENCODER
 from src.nn.backbone import load_backbone
 from src.nn.backbones.base import BackboneBase
 from src.nn.pool.pool import ChannelWiseGeM, GeM
@@ -48,7 +49,9 @@ def init_model_from_config(cfg: DictConfig, pretrained: bool):
         head = nn.Linear(out_features, 1, bias=True)
         head_age_scaled = nn.Linear(out_features, 1, bias=True)
         head_sex_enc = nn.Linear(out_features, 1, bias=True)
-        head_anatom_site_general_enc = nn.Linear(out_features, 6, bias=True)
+        head_anatom_site_general_enc = nn.Linear(
+            out_features, len(ANATOM_SITE_GENERAL_ENCODER), bias=True
+        )
         head_has_lesion_id = nn.Linear(out_features, 1, bias=True)
         head_tbp_lv_H = nn.Linear(out_features, 1, bias=True)
     else:

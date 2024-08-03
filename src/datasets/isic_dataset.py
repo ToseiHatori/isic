@@ -36,7 +36,7 @@ class ISICDataset(Dataset):
         seed: int = 2023,
         num_records: int = 0,
         fold_path: Optional[str] = "./fold/train_with_fold.csv",
-        past_fold_path: list[str] = None,
+        past_fold_path: list[str] = [],
         data_type: str = "train",
     ) -> pd.DataFrame:
         root = cls.ROOT_PATH
@@ -45,15 +45,16 @@ class ISICDataset(Dataset):
             if fold_path is not None:
                 df = pd.read_csv(fold_path, low_memory=False)
                 df["is_past"] = 0
-                if num_records:
-                    df = df[:num_records]
-                if past_fold_path is not None:
+                if len(past_fold_path) > 0:
                     for _path in past_fold_path:
-                        print("past_data -> {}...")
+                        print(f"past_data -> {_path}...")
                         past_df = pd.read_csv(_path, low_memory=False)
+                        past_df["target"] = past_df["target"].astype(int)
                         past_df["is_past"] = 1
                         df = pd.concat([df, past_df], axis=0)
                     df = df.reset_index(drop=True)
+                if num_records:
+                    df = df[:num_records]
                 return df
             else:
                 # not supported
@@ -65,24 +66,8 @@ class ISICDataset(Dataset):
             df = pd.read_csv(str(root / "sample_submission.csv"))
             assert 0 == 1
             return df
-
-        n_splits = num_folds
-        shuffle = True
-
-        kfold = GroupKFold(n_splits=n_splits, shuffle=shuffle, random_state=seed)
-        X = df["isic_id"].values
-        y = df["cancer"].values
-        group = df["patient_id"].values
-        fold = -np.ones(len(df))
-        for i, (_, indices) in enumerate(kfold.split(X, y, group=group)):
-            fold[indices] = i
-
-        df["fold"] = fold
-
-        if num_records:
-            df = df[::num_records]
-
-        return df
+        else:
+            assert 0 == 1
 
     def __init__(
         self,
@@ -92,6 +77,7 @@ class ISICDataset(Dataset):
         data_name="isic",
     ) -> None:
         self.df = df.copy()
+
         self.df["original_index"] = df.index
         self.df.reset_index(inplace=True)
         # 前処理系(ここでやるべきではないとは思っている)
@@ -129,6 +115,12 @@ class ISICDataset(Dataset):
         else:
             cache_dir = None
             self._cache = None
+        assert self.df["target"].isnull().sum() == 0, "target contains null"
+        assert self.df["target"].max() == 1, "target is greater than 1"
+        assert len(self.df) == len(set(self.df["isic_id"])), "isic_id not unique"
+        assert self.df["is_past"].isnull().sum() == 0, "is_past contains null"
+        assert self.df["isic_id"].isnull().sum() == 0, "isic_id contains null"
+        assert self.df["patient_id"].isnull().sum() == 0, "patient_id contains null"
 
     def __len__(self) -> int:
         return len(self.df)
@@ -182,5 +174,4 @@ class ISICDataset(Dataset):
             "image_1": image_1,
         }
         res.update(metadata)
-
         return res

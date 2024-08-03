@@ -38,6 +38,7 @@ def get_isic_dataset(
         seed,
         num_records,
         fold_path=cfg.fold_path,
+        past_fold_path=cfg.past_fold_path,
     )
 
     train_df = df[(df["fold"] != val_fold) & (df["fold"] != test_fold)]

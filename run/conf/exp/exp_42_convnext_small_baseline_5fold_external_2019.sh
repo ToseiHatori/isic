@@ -8,7 +8,7 @@ FOLD=0
 CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=$gpu_index python -m run.train \
   dataset.num_folds=5 \
   dataset.fold_path=./fold/train_with_fold_5.csv \
-  dataset.past_fold_path="[./fold/train_2020_with_fold_5.csv]" \
+  dataset.past_fold_path="[./fold/train_2020_with_fold_5.csv,./fold/train_2019_with_fold_5.csv]" \
   dataset.test_fold=$FOLD \
   dataset.use_cache=false \
   dataset.downsampling_rate=0 \

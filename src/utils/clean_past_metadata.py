@@ -47,9 +47,9 @@ df_past["target"] = df_past["benign_malignant"].map(
 print(df_past.shape)
 for cat in df_past["isic_challenge_category"].unique():
     print(cat)
-    df_past_cat = df_past[df_past["isic_challenge_category"] == cat].reset_index(
+    df_past_cat = df_past.loc[df_past["isic_challenge_category"] == cat, :].reset_index(
         drop=True
     )
     print(len(df_past_cat))
     print(df_past_cat["target"].mean())
-    df_past.to_csv(f"./data/past_metadata_{cat}.csv", index=False)
+    df_past_cat.to_csv(f"./data/past_metadata_{cat}.csv", index=False)
