@@ -19,8 +19,17 @@ def find_latest_checkpoint_directory(base_dir):
     return latest_checkpoint_dir
 
 
-def main(base_dir):
-    for fold in range(5):
+def clear_sub_directory():
+    sub_dir = "./sub"
+    if os.path.exists(sub_dir):
+        shutil.rmtree(sub_dir)
+    os.makedirs(sub_dir, exist_ok=True)
+
+
+def main(base_dir, n_fold):
+    clear_sub_directory()
+
+    for fold in range(n_fold):
         src_dir = f"results/{base_dir}_{fold}"
         dest_dir = os.path.join("sub", f"fold_{fold}")
 
@@ -66,6 +75,9 @@ def main(base_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reorganize experiment results")
     parser.add_argument("base_dir", type=str, help="Base directory of the experiment")
+    parser.add_argument(
+        "n_fold", type=int, help="Number of folds in the experiment", default=5
+    )
     args = parser.parse_args()
 
-    main(args.base_dir)
+    main(args.base_dir, args.n_fold)
