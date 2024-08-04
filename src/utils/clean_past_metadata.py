@@ -46,8 +46,12 @@ df_past["target"] = df_past["benign_malignant"].map(
 
 print(df_past.shape)
 for cat in df_past["isic_challenge_category"].unique():
+    print("-------------------")
     print(cat)
     df_past_cat = df_past.loc[df_past["isic_challenge_category"] == cat, :].reset_index(
+        drop=True
+    )
+    df_past_cat = df_past_cat.loc[df_past_cat["target"].notnull(), :].reset_index(
         drop=True
     )
     print(len(df_past_cat))
