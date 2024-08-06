@@ -49,8 +49,11 @@ class ISICDataset(Dataset):
                     for _path in past_fold_path:
                         print(f"past_data -> {_path}...")
                         past_df = pd.read_csv(_path, low_memory=False)
-                        past_df["target"] = past_df["target"].astype(int)
                         past_df["is_past"] = 1
+                        # trainだけに入れる
+                        # TODO: パラメータにする
+                        past_df["fold"] = -1
+                        past_df["target"] = past_df["target"].astype(int)
                         df = pd.concat([df, past_df], axis=0)
                     df = df.reset_index(drop=True)
                 if num_records:
@@ -77,9 +80,6 @@ class ISICDataset(Dataset):
         data_name="isic",
     ) -> None:
         self.df = df.copy()
-
-        self.df["original_index"] = df.index
-        self.df.reset_index(inplace=True)
         # 前処理系(ここでやるべきではないとは思っている)
         self.df["age_scaled"] = (
             self.df["age_approx"].fillna(60) / 90
@@ -93,10 +93,24 @@ class ISICDataset(Dataset):
         # 0fill
         self.df = self.df.infer_objects()  # これやっとかないと警告が出る
         self.df = self.df.fillna(0)
+
+        # label encoding
         self.df["anatom_site_general_enc"] = self.df["anatom_site_general"].map(
             ANATOM_SITE_GENERAL_ENCODER
         )
         self.df["sex_enc"] = self.df["sex"].map(SEX_ENCODER)
+
+        # 特定のsiteを絞る処理
+        if cfg.use_only_2024_sites:
+            print("USE ONLY 6 SITE")
+            self.df = self.df.loc[
+                self.df["anatom_site_general_enc"].isin([0, 1, 2, 3, 4, 5]), :
+            ].reset_index(drop=True)
+
+        # indexing
+        self.df["original_index"] = self.df.index
+        self.df.reset_index(inplace=True)
+
         # IDがstringだとGPUに乗らなくてDDPできないのでintにしておく
         # self.df["isic_id_int"] = self.df["isic_id"].map(lambda x: int(x.split("ISIC_")[1]))
         # self.df["patient_id_int"] = self.df["patient_id"].map(lambda x: int(x.split("IP_")[1]))
