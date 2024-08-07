@@ -168,6 +168,8 @@ class PLModel(LightningModule):
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
             loss_tbp_lv_H,
+            loss_is_past,
+            _,
             _,
             _,
             _,
@@ -241,6 +243,16 @@ class PLModel(LightningModule):
             # logger=True,
             sync_dist=True,
         )
+        self.log(
+            "train_loss_is_past",
+            loss_is_past.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            sync_dist=True,
+        )
+
         sch = self.lr_schedulers()
         sch.step()
         self.log(
@@ -292,6 +304,7 @@ class PLModel(LightningModule):
             "pred_anatom_site_general_enc",
             "pred_has_lesion_id",
             "pred_tbp_lv_H",
+            "pred_is_past",
             "embed_features",
         ]:
             if key == "embed_features":
@@ -346,6 +359,9 @@ class PLModel(LightningModule):
             )
             * 110
         ) + 2
+        df["pred_is_past"] = sigmoid(
+            epoch_results["pred_is_past"][:, 0].reshape(-1).astype(np.float128)
+        )
         df = df.sort_values(by="original_index")
 
         if phase == "test" and self.trainer.global_rank == 0:
@@ -408,6 +424,7 @@ class PLModel(LightningModule):
             "loss_anatom_site_general_enc",
             "loss_has_lesion_id",
             "loss_tbp_lv_H",
+            "loss_is_past",
         ]:
             tmp_loss = (
                 torch.cat([torch.atleast_1d(x[loss_name]) for x in outputs])
@@ -435,12 +452,14 @@ class PLModel(LightningModule):
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
             loss_tbp_lv_H,
+            loss_is_past,
             embed_features,
             preds_age_scaled,
             preds_sex_enc,
             preds_anatom_site_general_enc,
             preds_has_lesion_id,
             preds_tbp_lv_H,
+            preds_is_past,
         ) = self.forwarder.forward(batch, phase=phase, epoch=self.current_epoch)
 
         output = {
@@ -451,6 +470,7 @@ class PLModel(LightningModule):
             "loss_anatom_site_general_enc": loss_anatom_site_general_enc,
             "loss_has_lesion_id": loss_has_lesion_id,
             "loss_tbp_lv_H": loss_tbp_lv_H,
+            "loss_is_past": loss_is_past,
             "label": batch["label"],
             "original_index": batch["original_index"],
             "patient_id": batch["patient_id"],
@@ -461,6 +481,7 @@ class PLModel(LightningModule):
             "pred_anatom_site_general_enc": preds_anatom_site_general_enc.detach(),
             "pred_has_lesion_id": preds_has_lesion_id.detach(),
             "pred_tbp_lv_H": preds_tbp_lv_H.detach(),
+            "pred_is_past": preds_is_past.detach(),
             "embed_features": embed_features.detach(),
         }
         return output

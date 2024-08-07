@@ -54,6 +54,7 @@ def init_model_from_config(cfg: DictConfig, pretrained: bool):
         )
         head_has_lesion_id = nn.Linear(out_features, 1, bias=True)
         head_tbp_lv_H = nn.Linear(out_features, 1, bias=True)
+        head_is_past = nn.Linear(out_features, 1, bias=True)
     else:
         raise ValueError(f"{cfg.head.type} is not implemented")
 
@@ -64,6 +65,7 @@ def init_model_from_config(cfg: DictConfig, pretrained: bool):
     head_all.add_module("head_anatom_site_general_enc", head_anatom_site_general_enc)
     head_all.add_module("head_has_lesion_id", head_has_lesion_id)
     head_all.add_module("head_tbp_lv_H", head_tbp_lv_H)
+    head_all.add_module("head_is_past", head_is_past)
     model.add_module("head", head_all)
 
     if cfg.restore_path is not None:

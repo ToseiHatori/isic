@@ -60,12 +60,14 @@ class Forwarder(nn.Module):
         logits_anatom_site_general_enc,
         logits_has_lesion_id,
         logits_tbp_lv_H,
+        logits_is_past,
         labels,
         labels_age_scaled,
         labels_sex_enc,
         labels_anatom_site_general_enc,
         labels_has_lesion_id,
         labels_tbp_lv_H,
+        labels_is_past,
     ):
         cfg = self.cfg.loss
         loss_target = self.loss_bce(logits, labels)
@@ -76,6 +78,7 @@ class Forwarder(nn.Module):
         )
         loss_has_lesion_id = self.loss_bce(logits_has_lesion_id, labels_has_lesion_id)
         loss_tbp_lv_H = self.loss_bce(logits_tbp_lv_H, labels_tbp_lv_H)
+        loss_is_past = self.loss_bce(logits_is_past, labels_is_past)
 
         loss = loss_target.clone() * cfg.target_weight
         loss += loss_age_scaled * cfg.age_scaled_weight
@@ -83,6 +86,7 @@ class Forwarder(nn.Module):
         loss += loss_anatom_site_general_enc * cfg.anatom_site_general_enc_weight
         loss += loss_has_lesion_id * cfg.has_lesion_id_weight
         loss += loss_tbp_lv_H * cfg.tbp_lv_H_weight
+        loss += loss_is_past * cfg.is_past_weight
         return (
             loss,
             loss_target,
@@ -91,6 +95,7 @@ class Forwarder(nn.Module):
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
             loss_tbp_lv_H,
+            loss_is_past,
         )
 
     def forward(
@@ -118,6 +123,7 @@ class Forwarder(nn.Module):
         labels_anatom_site_general_enc = batch["anatom_site_general_enc"]
         labels_has_lesion_id = batch["has_lesion_id"].to(torch.float16)
         labels_tbp_lv_H = batch["tbp_lv_H"].to(torch.float16)
+        labels_is_past = batch["is_past"].to(torch.float16)
 
         if phase == "train":
             with torch.set_grad_enabled(True):
@@ -132,6 +138,7 @@ class Forwarder(nn.Module):
                     embed_features
                 )
                 logits_tbp_lv_H = self.model.head.head_tbp_lv_H(embed_features)
+                logits_is_past = self.model.head.head_is_past(embed_features)
         else:
             if phase == "test":
                 with self.ema.average_parameters():
@@ -146,6 +153,7 @@ class Forwarder(nn.Module):
                         embed_features
                     )
                     logits_tbp_lv_H = self.model.head.head_tbp_lv_H(embed_features)
+                    logits_is_past = self.model.head.head_is_past(embed_features)
             elif phase == "val":
                 embed_features = self.model.forward_features(inputs)
                 if use_multi_view:
@@ -160,6 +168,7 @@ class Forwarder(nn.Module):
                     embed_features
                 )
                 logits_tbp_lv_H = self.model.head.head_tbp_lv_H(embed_features)
+                logits_is_past = self.model.head.head_is_past(embed_features)
 
         (
             loss,
@@ -169,6 +178,7 @@ class Forwarder(nn.Module):
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
             loss_tbp_lv_H,
+            loss_is_past,
         ) = self.loss(
             logits=logits,
             logits_age_scaled=logits_age_scaled,
@@ -176,12 +186,14 @@ class Forwarder(nn.Module):
             logits_anatom_site_general_enc=logits_anatom_site_general_enc,
             logits_has_lesion_id=logits_has_lesion_id,
             logits_tbp_lv_H=logits_tbp_lv_H,
+            logits_is_past=logits_is_past,
             labels=labels,
             labels_age_scaled=labels_age_scaled,
             labels_sex_enc=labels_sex_enc,
             labels_anatom_site_general_enc=labels_anatom_site_general_enc,
             labels_has_lesion_id=labels_has_lesion_id,
             labels_tbp_lv_H=labels_tbp_lv_H,
+            labels_is_past=labels_is_past,
         )
         return (
             logits,
@@ -192,10 +204,12 @@ class Forwarder(nn.Module):
             loss_anatom_site_general_enc,
             loss_has_lesion_id,
             loss_tbp_lv_H,
+            loss_is_past,
             embed_features,
             logits_age_scaled,
             logits_sex_enc,
             logits_anatom_site_general_enc,
             logits_has_lesion_id,
             logits_tbp_lv_H,
+            logits_is_past,
         )

@@ -76,6 +76,7 @@ forwarder:
     pr_auc_weight: 0.0
     has_lesion_id_weight: 0.0
     tbp_lv_H_weight: 0.0
+    is_past_weight: 0.0
 
 #====
 # Dataset

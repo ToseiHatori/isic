@@ -169,6 +169,7 @@ class ISICDataset(Dataset):
             "anatom_site_general_enc": self.df.loc[index, "anatom_site_general_enc"],
             "has_lesion_id": self.df.loc[index, "has_lesion_id"],
             "tbp_lv_H": self.df.loc[index, "tbp_lv_H"],
+            "is_past": self.df.loc[index, "is_past"],
         }
         return res
 
