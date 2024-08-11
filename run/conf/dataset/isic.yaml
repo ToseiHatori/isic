@@ -7,6 +7,7 @@ val_fold: ${dataset.test_fold}  # Validation fold for N-fold CV. Should be in [0
 fold_path: ./fold/train_with_fold.csv
 use_only_2024_sites: false
 past_fold_path: []
+validation_on_past_data: false
 seed: 2023
 num_records: 0
 phase: "train"

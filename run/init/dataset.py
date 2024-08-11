@@ -39,6 +39,7 @@ def get_isic_dataset(
         num_records,
         fold_path=cfg.fold_path,
         past_fold_path=cfg.past_fold_path,
+        validation_on_past_data=cfg.validation_on_past_data,
     )
 
     train_df = df[(df["fold"] != val_fold) & (df["fold"] != test_fold)]
@@ -81,11 +82,6 @@ def get_isic_dataset(
         train_dataset = ISICDataset(test_df, phase="test", cfg=cfg)
         val_dataset = ISICDataset(test_df, phase="test", cfg=cfg)
         test_dataset = ISICDataset(test_df, phase="test", cfg=cfg)
-    elif phase == "vindr":
-        df_vindr = ISICDataset.create_dataframe(data_type="vindr")
-        train_dataset = ISICDataset(df_vindr, phase="test", cfg=cfg, data_name="vindr")
-        val_dataset = ISICDataset(df_vindr, phase="test", cfg=cfg, data_name="vindr")
-        test_dataset = ISICDataset(df_vindr, phase="test", cfg=cfg, data_name="vindr")
 
     datasets = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
     if phase == "train":

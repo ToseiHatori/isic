@@ -92,7 +92,7 @@ def main(cfg: DictConfig, pl_model: type) -> Path:
         trainer.fit(model)
 
         if cfg.training.resume_from is None:
-            trainer.test()  # test with the best checkpoint
+            trainer.test(ckpt_path="last")
         else:
             current_best_score = (
                 trainer.checkpoint_callback.best_model_score.detach().cpu().numpy()

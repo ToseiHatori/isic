@@ -38,6 +38,7 @@ class ISICDataset(Dataset):
         fold_path: Optional[str] = "./fold/train_with_fold.csv",
         past_fold_path: list[str] = [],
         data_type: str = "train",
+        validation_on_past_data=False,
     ) -> pd.DataFrame:
         root = cls.ROOT_PATH
 
@@ -50,9 +51,10 @@ class ISICDataset(Dataset):
                         print(f"past_data -> {_path}...")
                         past_df = pd.read_csv(_path, low_memory=False)
                         past_df["is_past"] = 1
-                        # trainだけに入れる
-                        # TODO: パラメータにする
-                        past_df["fold"] = -1
+                        if validation_on_past_data:
+                            pass
+                        else:
+                            past_df["fold"] = -1
                         past_df["target"] = past_df["target"].astype(int)
                         df = pd.concat([df, past_df], axis=0)
                     df = df.reset_index(drop=True)
