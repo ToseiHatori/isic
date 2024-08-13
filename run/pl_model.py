@@ -401,7 +401,8 @@ class PLModel(LightningModule):
         pf_score_000 = pf_score(label, pred)
         try:
             auc_score = roc_auc_score(label.reshape(-1), pred.reshape(-1))
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             auc_score = 0
         try:
             pauc_score = pAUCscore(label.reshape(-1), pred.reshape(-1))
@@ -410,8 +411,9 @@ class PLModel(LightningModule):
             pauc_score = 0
         try:
             pr_auc_score = average_precision_score(label.reshape(-1), pred.reshape(-1))
-        except Exception:
-            auc_score = 0
+        except Exception as e:
+            logger.error(e)
+            pr_auc_score = 0
 
         mean_auc_score = (auc_score + pr_auc_score + pauc_score) / 3
 
