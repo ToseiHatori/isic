@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 train_df = pd.read_csv(input_filename, low_memory=False)
 
 # Stratified Group K-Foldで分割
-sgkf = StratifiedGroupKFold(n_splits=n_splits)
+sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=42)
 train_df["fold"] = -1
 
 for fold, (train_idx, val_idx) in enumerate(
