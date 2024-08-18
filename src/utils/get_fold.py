@@ -27,6 +27,16 @@ logger = logging.getLogger(__name__)
 # データの読み込み
 train_df = pd.read_csv(input_filename, low_memory=False)
 
+if "target" not in train_df.columns:
+    # 過去データ用の処理
+    train_df = train_df[~train_df['benign_malignant'].isnull()].reset_index(drop=True)
+    target_map = {'benign': 0, 'indeterminate': 0, 'indeterminate/benign': 0,
+              'indeterminate/malignant': 1, 'malignant': 1}
+    train_df['target'] = train_df['benign_malignant'].map(target_map)
+    # patient_idがnullであることがしばしばあるのでisic_idで埋めておく
+    idx = train_df["patient_id"].isnull()
+    train_df.loc[idx, "patient_id"] = train_df.loc[idx, "isic_id"]
+
 # Stratified Group K-Foldで分割
 sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=42)
 train_df["fold"] = -1
