@@ -10,8 +10,7 @@ class SwinTransformerBackbone(BackboneBase):
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.model.forward_features(x)
-        x = x.transpose(1, 2)
-        x = x.unsqueeze(-1)
+        x = x.permute(0, 3, 1, 2)
         return x
 
     @property
