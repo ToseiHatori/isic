@@ -27,7 +27,7 @@ for FOLD in {0..4}; do
     augmentation.p_coarse_dropout=0.2 \
     augmentation.coarse_dropout_max_holes=16 \
     augmentation.coarse_dropout_max_size=32 \
-    model.base_model=swinv2_small_window16_256.ms_in1k \
+    model.base_model=swinv2_tiny_window8_256.ms_in1k \
     training.use_wandb=true \
     training.num_workers=24 \
     forwarder.loss.target_weight=1.0 \
