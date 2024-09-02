@@ -4,12 +4,14 @@ from timm.models.efficientnet import EfficientNet
 from timm.models.resnet import ResNet
 from timm.models.swin_transformer import SwinTransformer
 from timm.models.swin_transformer_v2 import SwinTransformerV2
+from timm.models.davit import DaVit
 
 from .backbones.base import BackboneBase
 from .backbones.convnext import ConvNeXtBackbone
 from .backbones.efficientnet import EfficientNetBackbone
 from .backbones.resnet import ResNetBackbone
 from .backbones.swin_transformer import SwinTransformerBackbone
+from .backbones.davit import DaVitBackbone
 
 def load_backbone(
     base_model: str,
@@ -37,6 +39,8 @@ def load_backbone(
         backbone = SwinTransformerBackbone(model)
     elif isinstance(model, ConvNeXt):
         backbone = ConvNeXtBackbone(model)
+    elif isinstance(model, DaVit):
+        backbone = DaVitBackbone(model)
     else:
         import pdb
         pdb.set_trace()
