@@ -31,3 +31,5 @@ python src/utils/get_fold.py data/past_metadata.csv fold/train_past_metadata_wit
 bash run/conf/exp/exp_77_resnet152_baseline_5fold_ex_all_validation_on_past_all_w_1e-4.sh 0
 ```
 - We finally used exp71, 73, 75, 77.
+- Trained models
+  - https://www.kaggle.com/datasets/toseihatori/isic-2024-sub-models/data
