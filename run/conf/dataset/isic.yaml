@@ -14,8 +14,6 @@ phase: "train"
 use_cache: false
 roi_th: 0.1
 roi_buffer: 30
-use_multi_view: false
-use_multi_lat: false
 use_yolo: false
 augmentation:
   p_th: 0.5

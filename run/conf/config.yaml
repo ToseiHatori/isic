@@ -41,8 +41,6 @@ model:
 
   head: ${head}
   output_dim: ${dataset.num_classes}
-  use_multi_view: ${dataset.use_multi_view}
-  use_multi_lat: ${dataset.use_multi_lat}
   pool: ${pool}
   use_bn: false
   in_chans: 3
@@ -66,14 +64,11 @@ head:
 # Forwarder
 #====
 forwarder:
-  use_multi_view: ${dataset.use_multi_view}
-  use_multi_lat: ${dataset.use_multi_lat}
   loss:
     target_weight: 1.0
     age_scaled_weight: 0.0
     sex_enc_weight: 0.0
     anatom_site_general_enc_weight: 0.0
-    pr_auc_weight: 0.0
     has_lesion_id_weight: 0.0
     tbp_lv_H_weight: 0.0
     is_past_weight: 0.0

@@ -7,9 +7,6 @@ from omegaconf import DictConfig
 from torch import Tensor
 from torch_ema import ExponentialMovingAverage
 
-from global_objectives.losses import AUCPRLoss
-
-
 class Forwarder(nn.Module):
     def __init__(self, cfg: DictConfig, model: nn.Module) -> None:
         super().__init__()
@@ -17,10 +14,6 @@ class Forwarder(nn.Module):
         # workaround for device inconsistency of ExponentialMovingAverage
         self.ema = None
         self.cfg = cfg
-        self.pr_auc_loss = AUCPRLoss()
-
-    def loss_pr_auc(self, logits, labels):
-        return 1 + 10 * self.pr_auc_loss(logits, labels)
 
     def loss_bce(
         self,
@@ -106,15 +99,9 @@ class Forwarder(nn.Module):
         if self.ema is None:
             self.ema = ExponentialMovingAverage(self.model.parameters(), decay=0.999)
 
-        use_multi_view = self.cfg.use_multi_view
-        use_multi_lat = self.cfg.use_multi_lat
 
         # inputs: Input tensor.
         inputs = batch["image"]
-
-        if use_multi_view or use_multi_lat:
-            bs, ch, h, w = inputs.shape
-            inputs = inputs.view(bs * ch, 1, h, w)
 
         # labels
         labels = batch["label"].to(torch.float16)
@@ -156,8 +143,6 @@ class Forwarder(nn.Module):
                     logits_is_past = self.model.head.head_is_past(embed_features)
             elif phase == "val":
                 embed_features = self.model.forward_features(inputs)
-                if use_multi_view:
-                    embed_features = embed_features.view(bs, -1)
                 logits = self.model.head.head(embed_features)
                 logits_age_scaled = self.model.head.head_age_scaled(embed_features)
                 logits_sex_enc = self.model.head.head_sex_enc(embed_features)
