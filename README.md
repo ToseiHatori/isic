@@ -33,3 +33,7 @@ bash run/conf/exp/exp_77_resnet152_baseline_5fold_ex_all_validation_on_past_all_
 - We finally used exp71, 73, 75, 77.
 - Trained models
   - https://www.kaggle.com/datasets/toseihatori/isic-2024-sub-models/data
+
+## References
+- https://github.com/tyamaguchi17/rsna_mammo
+- https://www.kaggle.com/competitions/siim-isic-melanoma-classification/discussion/175412
